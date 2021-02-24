@@ -1,7 +1,6 @@
 import socket, os, sys
 
 # import 탐색 경로(sys.path)에 상위폴더 절대경로 추가
-sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 from threading import Thread, Lock
 
 # ? 멀티 쓰레드가 사용하는 컨테이너이므로 약한 참조로 가비지 관리를 해준다 (각 쓰레드가 self바인딩으로 참조카운터를 하나씩 가진다)
@@ -57,7 +56,7 @@ class ClientRepresentative(Thread):
         self.lock = Lock()
         self.suicide_order = False
 
-    #! recv는 네트워크 버퍼가 비워지면 반환된다, send는 채워지면 반환된다(이것들은 네트워크 버퍼에서 작동한다)
+    #! recv는 네트워크 버퍼가 비워지면 반환된다, send는 채워지면 반환된다(이것들은 네트워크 버퍼에서 작동한다) I/O블러킹 지점
     def run(self):
         missing_users = []
         while True:
