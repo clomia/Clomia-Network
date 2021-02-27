@@ -58,7 +58,6 @@ class ResponseSocket(Thread):
         """ sock_data매개변수는 소켓객체가 아니라는 점에 유의 """
         super().__init__()
         self.sock, (self.client_ip, self.client_port) = sock_data
-        self.lock = Lock()
         # 타겟 클라이언트 전용 데이터 큐 (데이터 큐 파이프라인의 출력부분)
         self.transmit_queue = Queue(SOCKET_QUEUE_SIZE)
         self.welcome_message = welcome_message
@@ -74,13 +73,11 @@ class ResponseSocket(Thread):
             while True:
                 # * Blocking
                 if SECRET_CODE == self.sock.recv(BUF_SIZE):  # 처음꺼는연결 구축신호(SECRET_CODE)
-                    with self.lock:
-                        # * Blocking
-                        data: bytes = self.transmit_queue.get()
-                        try:
-                            self.sock.sendall(data)
-                        except ConnectionResetError:
-                            raise SendallMethodException
+                    data: bytes = self.transmit_queue.get()  # * Blocking
+                    try:
+                        self.sock.sendall(data)
+                    except ConnectionResetError:
+                        raise SendallMethodException
                 else:
                     raise RecvMethodException
         except RecvMethodException:
@@ -117,10 +114,10 @@ class InputSocket(Thread):
                     data = (now() + self.unique_prefix).encode("utf-8") + data
                     with self.lock:
                         self.data_queue.put(data)
-                        try:
-                            self.sock.sendall(SECRET_CODE)
-                        except ConnectionResetError:
-                            raise SendallMethodException
+                    try:
+                        self.sock.sendall(SECRET_CODE)
+                    except ConnectionResetError:
+                        raise SendallMethodException
                 else:
                     raise RecvMethodException
         except RecvMethodException:
@@ -166,8 +163,9 @@ class Connection(Thread):
         """ 입력 쓰레드와 응답 쓰레드를 실행한다"""
         self.input_thread.start()
         self.response_thread.start()
-        self.input_thread.join()
         self.response_thread.join()
+        self.input_thread.join()
+        #! 클라이언트 측에서는 수신,발신 소켓을 모두 끊어야 한다
         # * Blocking # ! 두 쓰레드는 문제가 생기면 while을 빠져나와 종료하라 그러면 알아서 여기로 도달하게되고 이 아래에서 뒤처리를 한다
         notice = f"\n{now()}안내 메시지: {self.client_name} 님이 없어졌습니다.\n"
         print(
@@ -219,6 +217,10 @@ class InspectCode:
 
     def __repr__(self) -> str:
         return f"<InspectCode (inspect_code={self.inspect_code},created_time={repr(self.created_time).split('.')[0]})>"
+
+
+class InspectCodeValidationError:
+    pass
 
 
 class Server:
@@ -284,16 +286,22 @@ class Server:
             except ConnectionResetError:
                 remove_socket(self.sock, f"{now()}입력대기중에 클라이언트가 사라졌습니다 ")
             print(
-                f"{now()}[회신을 받았습니다]연결 구축 요청 : IP: {ip} , Port: {port}, 인스팩트 코드: {inspect_code} --- 응답 소켓이 생성되었습니다"
+                f"{now()}[회신을 받았습니다]연결 구축 요청 : IP: {ip} , Port: {port}, 인스팩트 코드: {inspect_code}\n: 응답 소켓이 생성되었습니다"
             )
             for inspect_code_obj in tuple(self.socket_mapping.keys()):
                 if inspect_code_obj.inspect_code == inspect_code:
                     current_inspect = inspect_code_obj
+                    break
+            # *--- 이 사이에 다른 쓰레드가 socket_mapping을 참조하면서 소켓 자동제거가 이루어진다 때문에 아래의 로직과 모순되지 않는다
+            # 아래의 로직 : 아래의 pop메서드가 index오류를 raise하는 경우도 포함하도록 except를 사용하는 로직
             with self.lock:
-                if inspect_code:
+                try:
                     input_socket_data = self.socket_mapping.pop(current_inspect)
-                else:
-                    raise RecvMethodException  # ?인스팩트 코드를 못받아서 Key로 사용 불가능 (클라이언트 문제라고 생각)
+                except:
+                    # 인스팩트 코드가 잘못된 경우 #!(여기서 브라우저의 요청을 구분)
+                    if len(inspect_code) <= len(str(INSPECT_CODE_RANGE[0])):
+                        print(f"{now()}인스팩트 코드{inspect_code} 와 매칭되는 소켓이 없습니다. 요청을 무시합니다")
+                        continue
                 self.binding_socket_queue.put((input_socket_data, response_socket_data))
             print(
                 f"{now()}{inspect_code}를 키로 사용해 짝을 이루는 입력소켓을 찾았습니다. 두 소켓을 묶어서 binding_socket_queue(큐)에 넣었습니다"
