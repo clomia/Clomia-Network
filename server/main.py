@@ -4,7 +4,7 @@ sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 from threading import Thread, Lock
 from queue import Queue
 from itertools import cycle
-from typing import Tuple, Callable
+from typing import Tuple, Callable, NoReturn
 from korean_name_generator import namer
 from env import (
     SERVER_PRIVATE_IP,
@@ -15,6 +15,7 @@ from env import (
     SERVER_DATA_QUEUE_SIZE,
     INSPECT_CODE_RANGE,
     BINDING_SOCKET_QUEUE_SIZE,
+    MAPPING_TIME_OUT,
 )
 
 # ? 데이터는 모두 bytes로 다룬다. 로그 찍을때만 인코딩한다
@@ -29,13 +30,14 @@ def remove_socket(sock, error_message=""):
     print(f"{error_message}\n:소켓을 제거하였습니다.")
 
 
-now = lambda: time.strftime("(%m/%d) %H시 %M분 %S초|")
+now: Callable[[], str] = lambda: time.strftime("(%m/%d) %H시 %M분 %S초|")
+socket_data = Tuple[socket.socket, Tuple[str, int]]
 
 
 class SendallMethodException(Exception):
     """ sendall 메서드로 데이터를 전송하다가 raise되는 예외입니다"""
 
-    def __init__(self):
+    def __init__(self) -> NoReturn:
         super().__init__("sendall 메서드로 데이터를 전송하는것에 실패했습니다")
 
 
@@ -45,14 +47,14 @@ class RecvMethodException(Exception):
     SECRET_CODE(암호)를 수신했지만 SECRET_CODE(암호)가 맞지 않을 때도 raise됩니다
     """
 
-    def __init__(self):
+    def __init__(self) -> NoReturn:
         super().__init__("recv 메서드가 아무런 데이터도 수신하지 못하였습니다")
 
 
 class ResponseSocket(Thread):
     """ 응답용 소켓을 관리한다 """
 
-    def __init__(self, sock_data: Tuple[socket.socket, Tuple[str, int]], welcome_message):
+    def __init__(self, sock_data: socket_data, welcome_message):
         """ sock_data매개변수는 소켓객체가 아니라는 점에 유의 """
         super().__init__()
         self.sock, (self.client_ip, self.client_port) = sock_data
@@ -95,7 +97,7 @@ class InputSocket(Thread):
 
     def __init__(
         self,
-        sock_data: Tuple[socket.socket, Tuple[str, int]],
+        sock_data: socket_data,
         data_queue: Queue,
         unique_prefix: str,
     ):
@@ -135,9 +137,10 @@ class Connection(Thread):
 
     def __init__(
         self,
-        input_socket_data: Tuple[socket.socket, Tuple[str, int]],
-        response_socket_data: Tuple[socket.socket, Tuple[str, int]],
+        input_socket_data: socket_data,
+        response_socket_data: socket_data,
         data_queue: Queue,
+        server,
     ):
         """ 입력용 소켓과 응답용 소켓을 묶어서 클라이언트 연결 관리자를 생성한다 """
         super().__init__()
@@ -157,6 +160,7 @@ class Connection(Thread):
         ).encode("utf-8")
         self.response_thread = ResponseSocket(response_socket_data, welcome_message)
         self.input_thread = InputSocket(self.input_socket_data, self.data_queue, self.unique_prefix)
+        self.server = server
 
     def run(self):
         """ 입력 쓰레드와 응답 쓰레드를 실행한다"""
@@ -168,15 +172,53 @@ class Connection(Thread):
         notice = f"\n{now()}안내 메시지: {self.client_name} 님이 없어졌습니다.\n"
         print(
             notice,
-            f"\n{now()}{self.unique_prefix} : 탈주를 확인했습니다. 관련 소켓들이 모두 제거되었으며 해당 Connection쓰레드를 종료합니다",
+            f"\n{now()}{self.unique_prefix}탈주를 확인했습니다. 관련 소켓들이 모두 제거되었으며 해당 Connection쓰레드를 종료합니다",
         )
         with self.lock:
-            self.data_quene.put(notice.encode("utf-8"))
+            self.data_queue.put(notice.encode("utf-8"))
 
     def send(self, response_data: bytes):
         """ 바로 아래 노드의 응답 쓰레드 전송 큐로 데이터를 전달한다."""
         # * Blocking. send 대기중
         self.response_thread.send(response_data)
+
+
+class SocketMappingDict(dict):
+    def repr_supporter(self, inspect_code_obj, sock: socket_data):
+        is_closed = "[닫힘]" if sock[0]._closed else ""  # 닫힘을 볼 일이 없어야 함
+        ip = sock[1][0]
+        port = sock[1][1]
+        return f"{repr(inspect_code_obj)}:<socket {is_closed}IP={ip} , Port={port}>"
+
+    def __setitem__(self, key, value):
+        super().__setitem__(key, value)
+        with Lock():
+            keys = tuple(self.keys())
+            now_time = time.time()
+            for inspect_code_obj in keys:  #!!!!!!!!!
+                mapping_waiting_time = now_time - inspect_code_obj.created_time
+                if self[inspect_code_obj][0]._closed or mapping_waiting_time > MAPPING_TIME_OUT:
+                    print(
+                        f"[SocketMappingDict의 메세지]{self.repr_supporter(inspect_code_obj,self[inspect_code_obj])}가 대기시간을 초과했거나 close되어서 제거하였습니다"
+                    )
+                    #! 이슈 : 여기서 데이터를 지워도 이후 클라이언트의 인스팩트 신호 회신으로 pop,getitem가 호출되면 여기서 지워져서 없어야 할 데이터를 성공적으로 가져온다
+                    super().__delitem__(inspect_code_obj)
+
+    def __repr__(self) -> str:
+        info_str = "<SocketMappingDict {"
+        for key, value in self.items():
+            info_str += self.repr_supporter(key, value) + " ,"
+        info_str += "}>"
+        return info_str
+
+
+class InspectCode:
+    def __init__(self, integer):
+        self.inspect_code = str(integer).encode("utf-8")
+        self.created_time = time.time()
+
+    def __repr__(self) -> str:
+        return f"<InspectCode (inspect_code={self.inspect_code},created_time={repr(self.created_time).split('.')[0]})>"
 
 
 class Server:
@@ -185,11 +227,11 @@ class Server:
     def __init__(self):
         # todo Queue를 상속받아서 로깅 메서드 정의
         self.data_queue = Queue(SERVER_DATA_QUEUE_SIZE)
-        self.inspect_code_generator: Callable[[], bytes] = lambda: str(
+        self.inspect_code_obj_generator: Callable[[], bytes] = lambda: InspectCode(
             random.randint(*INSPECT_CODE_RANGE)
-        ).encode("utf-8")
+        )
         self.connection_threads = []
-        self.socket_mapping = {}
+        self.socket_mapping = SocketMappingDict()
         self.binding_socket_queue = Queue(BINDING_SOCKET_QUEUE_SIZE)
         self.lock = Lock()
 
@@ -207,7 +249,7 @@ class Server:
         Thread(target=self.binding_two_socket_loop).start()
         while True:
             input_socket_data, response_socket_data = self.binding_socket_queue.get()  # * Blocking
-            thread = Connection(input_socket_data, response_socket_data, self.data_queue)
+            thread = Connection(input_socket_data, response_socket_data, self.data_queue, self)
             self.connection_threads.append(thread)
             client_name = thread.client_name
             _, (input_socket_ip, input_socket_port) = input_socket_data
@@ -223,9 +265,11 @@ class Server:
         """ 입력 소켓을 인스팩트코드와 매핑시켜서 (socket_mapping에)저장하는 루프이다"""
         while True:
             input_socket_data = self.input_socket_generator()  # * Blocking
-            print(f"{now()}인스팩트 코드를 생성한뒤 클라이언트로 발송하였습니다. 인스팩트 코드 : {self.inspect_code}")
+            print(
+                f"{now()}인스팩트 코드를 생성한뒤 클라이언트로 발송하였습니다. 인스팩트 코드 : {self.inspect_code_obj.inspect_code}"
+            )
             with self.lock:
-                self.socket_mapping[self.inspect_code] = input_socket_data
+                self.socket_mapping[self.inspect_code_obj] = input_socket_data
             print(f"{now()}인스팩트 코드를 발송한 후 회신을 대기중인 입력 소켓 목록\n=>{self.socket_mapping}\n대기중입니다...")
 
     def binding_two_socket_loop(self):
@@ -242,9 +286,12 @@ class Server:
             print(
                 f"{now()}[회신을 받았습니다]연결 구축 요청 : IP: {ip} , Port: {port}, 인스팩트 코드: {inspect_code} --- 응답 소켓이 생성되었습니다"
             )
+            for inspect_code_obj in tuple(self.socket_mapping.keys()):
+                if inspect_code_obj.inspect_code == inspect_code:
+                    current_inspect = inspect_code_obj
             with self.lock:
                 if inspect_code:
-                    input_socket_data = self.socket_mapping[inspect_code]
+                    input_socket_data = self.socket_mapping.pop(current_inspect)
                 else:
                     raise RecvMethodException  # ?인스팩트 코드를 못받아서 Key로 사용 불가능 (클라이언트 문제라고 생각)
                 self.binding_socket_queue.put((input_socket_data, response_socket_data))
@@ -254,7 +301,7 @@ class Server:
 
     def connection_establish_attempt_request_listener(
         self,
-    ) -> Tuple[socket.socket, Tuple[str, int]]:
+    ) -> socket_data:
         """ 연결 구축 시도 요청을 받아서 반환한다"""
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
             server_socket.bind((SERVER_PRIVATE_IP, self.response_port))
@@ -262,8 +309,8 @@ class Server:
             connection_establish_attempt_request = server_socket.accept()  # * Blocking
             return connection_establish_attempt_request
 
-    def input_socket_generator(self) -> Tuple[socket.socket, Tuple[str, int]]:
-        """ 이 함수가 실행될때 self.inspect_code가 갱신된다 """
+    def input_socket_generator(self) -> socket_data:
+        """ 이 함수가 실행될때 self.inspect_code_obj가 갱신된다 """
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
             server_socket.bind((SERVER_PRIVATE_IP, self.input_port))
             server_socket.listen(SOCKET_QUEUE_SIZE)
@@ -271,12 +318,10 @@ class Server:
             input_socket_data = self.connection_requests_processing(connection_approval_request)
             return input_socket_data
 
-    def connection_requests_processing(
-        self, client_request: Tuple[socket.socket, Tuple[str, int]]
-    ) -> Tuple[socket.socket, Tuple[str, int]]:
+    def connection_requests_processing(self, client_request: socket_data) -> socket_data:
         """
         소켓으로 받은 SECRET_CODE를 확인합니다.
-        inspect_code를 생성해서 self.inspect_code를 갱신합니다
+        inspect_code_obj를 생성해서 self.inspect_code_obj를 갱신합니다
         올바른 요청인 경우 소켓으로 inspect_code를 보내고 소켓을 반환합니다
         """
         input_socket, (client_ip, port) = client_request
@@ -284,10 +329,9 @@ class Server:
         try:
             if secret_code := input_socket.recv(BUF_SIZE):
                 if secret_code == SECRET_CODE:
-                    inspect_code = self.inspect_code_generator()  # inspect_code 생성 (1)
-                    self.inspect_code = inspect_code
+                    self.inspect_code_obj = self.inspect_code_obj_generator()  # inspect_code 생성 (1)
                     try:
-                        input_socket.sendall(inspect_code)
+                        input_socket.sendall(self.inspect_code_obj.inspect_code)
                     except ConnectionResetError:
                         raise SendallMethodException
                     print(f"{now()}암호가 확인되었습니다.")
@@ -320,4 +364,5 @@ class Server:
 
 
 server = Server()
+server_list = [server]
 server.open(*OPEN_PORT_LIST[0:2])
