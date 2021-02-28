@@ -21,12 +21,6 @@ from env import (
 )
 
 
-# ? 데이터는 모두 bytes로 다룬다. 로그 찍을때만 인코딩한다
-# ? 단, 생성의 경우 str으로 유지한다. 최종 단계에서 한번에 인코딩한다
-# ? 닫힌소켓은 죽이자. 클라이언트가 없는데 있을 필요가 없어
-#! encode, socket에 인자 넣어
-
-
 def remove_socket(sock, error_message=""):
     sock.close()
     del sock
@@ -170,7 +164,7 @@ class Connection(Thread):
         self.input_thread.join()
         #! 클라이언트 측에서는 수신,발신 소켓을 모두 끊어야 한다
         # * Blocking # ! 두 쓰레드는 문제가 생기면 while을 빠져나와 종료하라 그러면 알아서 여기로 도달하게되고 이 아래에서 뒤처리를 한다
-        notice = f"\n{now()}안내 메시지: {self.client_name} 님이 없어졌습니다.\n"
+        notice = f"\n서버명:{self.server.name}{now()}안내 메시지: {self.client_name} 님이 없어졌습니다.\n"
         print(
             notice,
             f"\n{now()}{self.unique_prefix}탈주를 확인했습니다. 관련 소켓들이 모두 제거되었으며 해당 Connection쓰레드를 종료합니다",
@@ -226,12 +220,27 @@ class InspectCodeValidationError:
     pass
 
 
+class RecordingQueue(Queue):
+    def __init__(self, maxsize, name):
+        super().__init__(maxsize)
+        self.name = name
+
+    def put(self, item, block=True, timeout=None):
+        super().put(item, block, timeout)
+        now_date = time.strftime("%Y년%m월%d일")
+        msg = item.decode()
+        log_path = os.path.dirname(os.path.realpath(__file__)) + "/" + "log"
+        file_list = os.listdir(log_path)
+        mode = "a" if f"서버명[{self.name}]({now_date}).txt" in file_list else "w"
+        with open(log_path + f"/서버명[{self.name}]({now_date}).txt", mode, encoding="utf-8") as file:
+            file.write(msg + "\n")
+
+
 class Server:
     """ 수많은 접속(Connection)을 관리한다 Connection의 상위 노드이다 """
 
-    def __init__(self):
-        # todo Queue를 상속받아서 로깅 메서드 정의
-        self.data_queue = Queue(SERVER_DATA_QUEUE_SIZE)
+    def __init__(self, name):
+        self.data_queue = RecordingQueue(SERVER_DATA_QUEUE_SIZE, name)
         self.inspect_code_obj_generator: Callable[[], bytes] = lambda: InspectCode(
             random.randint(*INSPECT_CODE_RANGE)
         )
@@ -239,12 +248,15 @@ class Server:
         self.socket_mapping = SocketMappingDict()
         self.binding_socket_queue = Queue(BINDING_SOCKET_QUEUE_SIZE)
         self.lock = Lock()
+        self.name = name
 
     def main_processing_loop(self):
         """ 데이터 큐에 데이터가 들어오면 그것을 모든 클라이언트에게 전송하는 루프 = 대화를 담당"""
         while True:
             data = self.data_queue.get()  # * Blocking
-            print(f"{now()}데이터 큐에 데이터가 들어왔습니다. 모든 클라이언트에게 전송합니다\n Data: {data.decode()}\n")
+            print(
+                f"서버명:{self.name}{now()}데이터 큐에 데이터가 들어왔습니다. 모든 클라이언트에게 전송합니다\n Data: {data.decode()}\n"
+            )
             for thread in self.connection_threads:
                 thread.send(data)
 
@@ -260,7 +272,7 @@ class Server:
             _, (input_socket_ip, input_socket_port) = input_socket_data
             _, (response_socket_ip, response_socket_port) = response_socket_data
             print(
-                f"\n{now()}연결이 성공적으로 구축되었습니다. 클라이언트 이름: {client_name}\n"
+                f"\n서버명:{self.name}{now()}연결이 성공적으로 구축되었습니다. 클라이언트 이름: {client_name}\n"
                 + f"입력 소켓과 대응되는 클라이언트의 발신 소켓: IP: {input_socket_ip}, Port: {input_socket_port}\n"
                 + f"응답 소켓과 대응되는 클라이언트의 수신 소켓: IP: {response_socket_ip}, Port: {response_socket_port}\n"
             )
@@ -271,11 +283,13 @@ class Server:
         while True:
             input_socket_data = self.input_socket_generator()  # * Blocking
             print(
-                f"{now()}인스팩트 코드를 생성한뒤 클라이언트로 발송하였습니다. 인스팩트 코드 : {self.inspect_code_obj.inspect_code}"
+                f"서버명:{self.name}{now()}인스팩트 코드를 생성한뒤 클라이언트로 발송하였습니다. 인스팩트 코드 : {self.inspect_code_obj.inspect_code}"
             )
             with self.lock:
                 self.socket_mapping[self.inspect_code_obj] = input_socket_data
-            print(f"{now()}인스팩트 코드를 발송한 후 회신을 대기중인 입력 소켓 목록\n=>{self.socket_mapping}\n대기중입니다...")
+            print(
+                f"서버명:{self.name}{now()}인스팩트 코드를 발송한 후 회신을 대기중인 입력 소켓 목록\n=>{self.socket_mapping}\n대기중입니다..."
+            )
 
     def binding_two_socket_loop(self):
         """ 응답 소켓으로 수신한 인스팩트 코드와 매핑되는 입력 소켓을 찾은 뒤 두 소켓을 묶어서 큐(binding_socket_queue)에 넣는다"""
@@ -289,7 +303,7 @@ class Server:
             except ConnectionResetError:
                 remove_socket(self.sock, f"{now()}입력대기중에 클라이언트가 사라졌습니다 ")
             print(
-                f"{now()}[회신을 받았습니다]연결 구축 요청 : IP: {ip} , Port: {port}, 인스팩트 코드: {inspect_code}\n: 응답 소켓이 생성되었습니다"
+                f"서버명:{self.name}{now()}[회신을 받았습니다]연결 구축 요청 : IP: {ip} , Port: {port}, 인스팩트 코드: {inspect_code}\n: 응답 소켓이 생성되었습니다"
             )
             for inspect_code_obj in tuple(self.socket_mapping.keys()):
                 if inspect_code_obj.inspect_code == inspect_code:
@@ -303,13 +317,15 @@ class Server:
                 except:
                     # 인스팩트 코드가 잘못된 경우 #!(여기서 브라우저의 요청을 구분)
                     if len(inspect_code) <= len(str(INSPECT_CODE_RANGE[0])):
-                        print(f"{now()}인스팩트 코드{inspect_code} 와 매칭되는 소켓이 없습니다. 요청을 무시합니다")
+                        print(
+                            f"서버명:{self.name}{now()}인스팩트 코드{inspect_code} 와 매칭되는 소켓이 없습니다. 요청을 무시합니다"
+                        )
                         continue
                     elif (
                         http_method := (http_request := inspect_code.decode()).split(" ")[0]
                     ) in HTTP_METHOD_LIST:
                         print(
-                            f"\nHTTP 요청 메세지를 감지했습니다. HTTP응답으로 웹 페이지를 회신합니다. 페이지: main\n{http_request}\n"
+                            f"\n서버명:{self.name}{now()}HTTP 요청 메세지를 감지했습니다. HTTP응답으로 웹 페이지를 회신합니다. 페이지: main\n{http_request}\n"
                         )
                         main_template = TemplateController("templates/main")
                         completed_html = main_template.assembling()
@@ -319,11 +335,13 @@ class Server:
                         response_socket.close()
                         continue
                     else:
-                        print("인스팩트 코드도 아니고 HTTP요청도 아닌 알 수 없는 요청을 받았습니다. 무시합니다")
+                        print(
+                            f"서버명:{self.name}{now()}인스팩트 코드도 아니고 HTTP요청도 아닌 알 수 없는 요청을 받았습니다. 무시합니다"
+                        )
                         continue
                 self.binding_socket_queue.put((input_socket_data, response_socket_data))
             print(
-                f"{now()}{inspect_code}를 키로 사용해 짝을 이루는 입력소켓을 찾았습니다. 두 소켓을 묶어서 binding_socket_queue(큐)에 넣었습니다"
+                f"서버명:{self.name}{now()}{inspect_code}를 키로 사용해 짝을 이루는 입력소켓을 찾았습니다. 두 소켓을 묶어서 binding_socket_queue(큐)에 넣었습니다"
             )
 
     def connection_establish_attempt_request_listener(
@@ -352,7 +370,7 @@ class Server:
         올바른 요청인 경우 소켓으로 inspect_code를 보내고 소켓을 반환합니다
         """
         input_socket, (client_ip, port) = client_request
-        print(f"{now()}IP:{client_ip},포트번호:{port}에서 접속을 요청했습니다. 입력 소켓이 생성되었습니다.")
+        print(f"서버명:{self.name}{now()}IP:{client_ip},포트번호:{port}에서 접속을 요청했습니다. 입력 소켓이 생성되었습니다.")
         try:
             if secret_code := input_socket.recv(BUF_SIZE):
                 if secret_code == SECRET_CODE:
@@ -361,10 +379,10 @@ class Server:
                         input_socket.sendall(self.inspect_code_obj.inspect_code)
                     except ConnectionResetError:
                         raise SendallMethodException
-                    print(f"{now()}암호가 확인되었습니다.")
+                    print(f"서버명:{self.name}{now()}암호가 확인되었습니다.")
                 else:
                     rejection_message = (
-                        f"{now()}IP: {client_ip}, 포트번호:{port}로 접속을 시도하고 있는것을 확인했습니다. 요청 암호가 잘못되었습니다. 접속을 거부합니다. "
+                        f"서버명:{self.name}{now()}IP: {client_ip}, 포트번호:{port}로 접속을 시도하고 있는것을 확인했습니다. 요청 암호가 잘못되었습니다. 접속을 거부합니다. "
                     ).encode("utf-8")
                     try:
                         input_socket.sendall(rejection_message)
@@ -374,22 +392,23 @@ class Server:
                 raise RecvMethodException
             return client_request
         except ConnectionResetError:
-            remove_socket(self.sock, f"{now()}입력대기중에 클라이언트가 사라졌습니다 ")
+            remove_socket(self.sock, f"서버명:{self.name}{now()}입력대기중에 클라이언트가 사라졌습니다 ")
         except SendallMethodException as e:
-            remove_socket(self.sock, f"{now()}{e}")
+            remove_socket(self.sock, f"서버명:{self.name}{now()}{e}")
         except RecvMethodException as e:
-            remove_socket(self.sock, f"{now()}{e}")
+            remove_socket(self.sock, f"서버명:{self.name}{now()}{e}")
 
     def open(self, input_port, response_port):
         self.input_port = input_port
         self.response_port = response_port
-        print(f"{now()}서버가 실행되었습니다. -- 입력용 포트번호: {input_port} , 응답용 포트번호: {response_port}")
+        print(
+            f"서버명:{self.name}{now()}서버가 실행되었습니다. -- 입력용 포트번호: {input_port} , 응답용 포트번호: {response_port}"
+        )
         set_up_connection_thread = Thread(target=self.connection_generation_loop)
         main_connection_thread = Thread(target=self.main_processing_loop)
         set_up_connection_thread.start()
         main_connection_thread.start()
 
 
-server = Server()
-server_list = [server]
+server = Server("첫번째 서버")
 server.open(*OPEN_PORT_LIST[0:2])
