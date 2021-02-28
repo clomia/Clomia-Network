@@ -1,26 +1,57 @@
 body {
-    background-color: #f0f0f2;
+    background-color: #282a36;
     margin: 0;
-    padding: 0;
+    padding: 0 10vmin;
     font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
-
+    color: whitesmoke;
 }
-
-div {
-    width: 600px;
+/* #5777ff */
+.hello {
     margin: 5em auto;
     padding: 2em;
-    background-color: #fdfdff;
-    border-radius: 0.5em;
+    border-radius: 1em;
     box-shadow: 2px 3px 7px 2px rgba(0, 0, 0, 0.02);
+    border: 2px solid whitesmoke;
 }
+
+.btn {
+    width: 10vmin;
+    height: 5vmin;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: whitesmoke solid 0.6px;
+    color: whitesmoke;
+    background-color: rgba(255, 255, 255, 0.08);
+    font-size: 1.8vmin;
+}
+
+
+.gif {
+    display: flex;
+    flex-wrap: wrap-reverse;
+}
+
+.gif__server {
+    width: 102vmin;
+    height: 60vmin;
+    border: 1px solid whitesmoke;
+}
+
+.gif__client{
+    width: 102vmin;
+    height: 120vmin;
+    border: 1px solid whitesmoke;
+}
+
+
+
+
 
 a:link,
 a:visited {
-    color: #38488f;
     text-decoration: none;
 }
-
 @media (max-width: 700px) {
     div {
         margin: 0 auto;
