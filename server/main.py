@@ -6,6 +6,7 @@ from queue import Queue
 from itertools import cycle
 from typing import Tuple, Callable, NoReturn
 from korean_name_generator import namer
+from http_manager import TemplateController, HttpResponse
 from env import (
     SERVER_PRIVATE_IP,
     OPEN_PORT_LIST,
@@ -16,7 +17,9 @@ from env import (
     INSPECT_CODE_RANGE,
     BINDING_SOCKET_QUEUE_SIZE,
     MAPPING_TIME_OUT,
+    HTTP_METHOD_LIST,
 )
+
 
 # ? 데이터는 모두 bytes로 다룬다. 로그 찍을때만 인코딩한다
 # ? 단, 생성의 경우 str으로 유지한다. 최종 단계에서 한번에 인코딩한다
@@ -199,7 +202,7 @@ class SocketMappingDict(dict):
                     print(
                         f"[SocketMappingDict의 메세지]{self.repr_supporter(inspect_code_obj,self[inspect_code_obj])}가 대기시간을 초과했거나 close되어서 제거하였습니다"
                     )
-                    #! 이슈 : 여기서 데이터를 지워도 이후 클라이언트의 인스팩트 신호 회신으로 pop,getitem가 호출되면 여기서 지워져서 없어야 할 데이터를 성공적으로 가져온다
+                    #! 이슈 - 깃헙에 올림
                     super().__delitem__(inspect_code_obj)
 
     def __repr__(self) -> str:
@@ -301,6 +304,22 @@ class Server:
                     # 인스팩트 코드가 잘못된 경우 #!(여기서 브라우저의 요청을 구분)
                     if len(inspect_code) <= len(str(INSPECT_CODE_RANGE[0])):
                         print(f"{now()}인스팩트 코드{inspect_code} 와 매칭되는 소켓이 없습니다. 요청을 무시합니다")
+                        continue
+                    elif (
+                        http_method := (http_request := inspect_code.decode()).split(" ")[0]
+                    ) in HTTP_METHOD_LIST:
+                        print(
+                            f"\nHTTP 요청 메세지를 감지했습니다. HTTP응답으로 웹 페이지를 회신합니다. 페이지: main\n{http_request}\n"
+                        )
+                        main_template = TemplateController("templates/main")
+                        completed_html = main_template.assembling()
+                        http_request = HttpResponse(completed_html).response_200()
+                        response_socket.sendall(http_request)
+                        # http_response(response_socket)
+                        response_socket.close()
+                        continue
+                    else:
+                        print("인스팩트 코드도 아니고 HTTP요청도 아닌 알 수 없는 요청을 받았습니다. 무시합니다")
                         continue
                 self.binding_socket_queue.put((input_socket_data, response_socket_data))
             print(
