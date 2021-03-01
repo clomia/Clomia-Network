@@ -1,17 +1,14 @@
 import socket, random, os, sys, time
 
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
-from threading import Thread, Lock
+from threading import Lock, Thread
 from queue import Queue
 from itertools import cycle
-from typing import Tuple, Callable, NoReturn
+from typing import List, Tuple, Callable, NoReturn
 from korean_name_generator import namer
 from http_manager import TemplateController, HttpResponse
 from env import (
-    SERVER_PRIVATE_IP,
-    OPEN_PORT_LIST,
     BUF_SIZE,
-    SECRET_CODE,
     SOCKET_QUEUE_SIZE,
     SERVER_DATA_QUEUE_SIZE,
     INSPECT_CODE_RANGE,
@@ -51,13 +48,15 @@ class RecvMethodException(Exception):
 class ResponseSocket(Thread):
     """ 응답용 소켓을 관리한다 """
 
-    def __init__(self, sock_data: socket_data, welcome_message):
+    def __init__(self, sock_data: socket_data, secret_code:bytes,welcome_message:bytes,server_name:str):
         """ sock_data매개변수는 소켓객체가 아니라는 점에 유의 """
         super().__init__()
         self.sock, (self.client_ip, self.client_port) = sock_data
         # 타겟 클라이언트 전용 데이터 큐 (데이터 큐 파이프라인의 출력부분)
         self.transmit_queue = Queue(SOCKET_QUEUE_SIZE)
         self.welcome_message = welcome_message
+        self.secret_code = secret_code
+        self.server_name = server_name
 
     def send(self, data: bytes):
         """ 데이터를 입력받아서 전송 데이터 큐에 넣는다 """
@@ -69,7 +68,7 @@ class ResponseSocket(Thread):
         try:
             while True:
                 # * Blocking
-                if SECRET_CODE == self.sock.recv(BUF_SIZE):  # 처음꺼는연결 구축신호(SECRET_CODE)
+                if self.secret_code == self.sock.recv(BUF_SIZE):  
                     data: bytes = self.transmit_queue.get()  # * Blocking
                     try:
                         self.sock.sendall(data)
@@ -79,11 +78,11 @@ class ResponseSocket(Thread):
                     raise RecvMethodException
         except RecvMethodException:
             # 클라이언트의 수신용 소켓이 사라짐
-            remove_socket(self.sock, f"{now()}클라이언트의 수신용 소켓이 보낸 SECRET_CODE가 잘못되었습니다.")
+            remove_socket(self.sock, f"{self.server_name}{now()}클라이언트의 수신용 소켓이 보낸 SECRET_CODE가 잘못되었습니다.")
         except ConnectionResetError:
-            remove_socket(self.sock, f"{now()}입력 대기중에 클라이언트가 사라졌습니다 ")
+            remove_socket(self.sock, f"{self.server_name}{now()}입력 대기중에 클라이언트가 사라졌습니다 ")
         except SendallMethodException as e:
-            remove_socket(self.sock, f"{now()}{e}")
+            remove_socket(self.sock, f"{self.server_name}{now()}{e}")
 
 
 class InputSocket(Thread):
@@ -94,6 +93,8 @@ class InputSocket(Thread):
         sock_data: socket_data,
         data_queue: Queue,
         unique_prefix: str,
+        secret_code:bytes,
+        server_name:str,
     ):
         """ sock_data매개변수는 소켓객체가 아니라는 점에 유의 """
         super().__init__()
@@ -101,6 +102,8 @@ class InputSocket(Thread):
         self.unique_prefix = unique_prefix
         self.data_queue = data_queue
         self.lock = Lock()
+        self.secret_code = secret_code
+        self.server_name = server_name
 
     def run(self):
         """ 클라이언트로 부터 받은 데이터를 서버의 데이터 큐에 넣는다 """
@@ -112,16 +115,16 @@ class InputSocket(Thread):
                     with self.lock:
                         self.data_queue.put(data)
                     try:
-                        self.sock.sendall(SECRET_CODE)
+                        self.sock.sendall(self.secret_code)
                     except ConnectionResetError:
                         raise SendallMethodException
                 else:
                     raise RecvMethodException
         except RecvMethodException:
             # 클라이언트의 발신용 소켓이 사라짐
-            remove_socket(self.sock, f"{now()}클라이언트로부터 받은 데이터가 없습니다")
+            remove_socket(self.sock, f"{self.server_name}{now()}클라이언트로부터 받은 데이터가 없습니다")
         except ConnectionResetError:
-            remove_socket(self.sock, f"{now()}입력 대기중에 클라이언트가 사라졌습니다 ")
+            remove_socket(self.sock, f"{self.server_name}{now()}입력 대기중에 클라이언트가 사라졌습니다 ")
 
 
 class Connection(Thread):
@@ -135,6 +138,7 @@ class Connection(Thread):
         response_socket_data: socket_data,
         data_queue: Queue,
         server,
+        secret_code:bytes,
     ):
         """ 입력용 소켓과 응답용 소켓을 묶어서 클라이언트 연결 관리자를 생성한다 """
         super().__init__()
@@ -152,8 +156,9 @@ class Connection(Thread):
             + f"\n{self.client_name}님 환영합니다. 이 콘솔창은 디스플레이로 사용됩니다.\n"
             + "디스플레이에 어떠한 입력도 하지 마십시오.\n\n"
         ).encode("utf-8")
-        self.response_thread = ResponseSocket(response_socket_data, welcome_message)
-        self.input_thread = InputSocket(self.input_socket_data, self.data_queue, self.unique_prefix)
+        self.secret_code = secret_code
+        self.response_thread = ResponseSocket(response_socket_data, self.secret_code,welcome_message,server.name)
+        self.input_thread = InputSocket(self.input_socket_data, self.data_queue, self.unique_prefix,self.secret_code,server.name)
         self.server = server
 
     def run(self):
@@ -239,7 +244,10 @@ class RecordingQueue(Queue):
 class Server:
     """ 수많은 접속(Connection)을 관리한다 Connection의 상위 노드이다 """
 
-    def __init__(self, name):
+    def __init__(self, name,private_ip,secret_code):
+        self.private_ip:str = private_ip
+        self.secret_code:bytes =  secret_code
+        self.lock = Lock()
         self.data_queue = RecordingQueue(SERVER_DATA_QUEUE_SIZE, name)
         self.inspect_code_obj_generator: Callable[[], bytes] = lambda: InspectCode(
             random.randint(*INSPECT_CODE_RANGE)
@@ -247,8 +255,8 @@ class Server:
         self.connection_threads = []
         self.socket_mapping = SocketMappingDict()
         self.binding_socket_queue = Queue(BINDING_SOCKET_QUEUE_SIZE)
-        self.lock = Lock()
-        self.name = name
+        self.name:str = name
+
 
     def main_processing_loop(self):
         """ 데이터 큐에 데이터가 들어오면 그것을 모든 클라이언트에게 전송하는 루프 = 대화를 담당"""
@@ -266,7 +274,7 @@ class Server:
         Thread(target=self.binding_two_socket_loop).start()
         while True:
             input_socket_data, response_socket_data = self.binding_socket_queue.get()  # * Blocking
-            thread = Connection(input_socket_data, response_socket_data, self.data_queue, self)
+            thread = Connection(input_socket_data, response_socket_data, self.data_queue, self,self.secret_code)
             self.connection_threads.append(thread)
             client_name = thread.client_name
             _, (input_socket_ip, input_socket_port) = input_socket_data
@@ -345,11 +353,11 @@ class Server:
             )
 
     def connection_establish_attempt_request_listener(
-        self,
+        self, 
     ) -> socket_data:
         """ 연결 구축 시도 요청을 받아서 반환한다"""
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
-            server_socket.bind((SERVER_PRIVATE_IP, self.response_port))
+            server_socket.bind((self.private_ip, self.response_port))
             server_socket.listen(SOCKET_QUEUE_SIZE)
             connection_establish_attempt_request = server_socket.accept()  # * Blocking
             return connection_establish_attempt_request
@@ -357,7 +365,7 @@ class Server:
     def input_socket_generator(self) -> socket_data:
         """ 이 함수가 실행될때 self.inspect_code_obj가 갱신된다 """
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
-            server_socket.bind((SERVER_PRIVATE_IP, self.input_port))
+            server_socket.bind((self.private_ip, self.input_port))
             server_socket.listen(SOCKET_QUEUE_SIZE)
             connection_approval_request = server_socket.accept()  # * Blocking
             input_socket_data = self.connection_requests_processing(connection_approval_request)
@@ -373,7 +381,7 @@ class Server:
         print(f"서버명:{self.name}{now()}IP:{client_ip},포트번호:{port}에서 접속을 요청했습니다. 입력 소켓이 생성되었습니다.")
         try:
             if secret_code := input_socket.recv(BUF_SIZE):
-                if secret_code == SECRET_CODE:
+                if secret_code == self.secret_code:
                     self.inspect_code_obj = self.inspect_code_obj_generator()  # inspect_code 생성 (1)
                     try:
                         input_socket.sendall(self.inspect_code_obj.inspect_code)
@@ -398,7 +406,8 @@ class Server:
         except RecvMethodException as e:
             remove_socket(self.sock, f"서버명:{self.name}{now()}{e}")
 
-    def open(self, input_port, response_port):
+    def open(self, input_port:int, response_port:int):
+        """ 서버를 실행한다 """
         self.input_port = input_port
         self.response_port = response_port
         print(
@@ -410,5 +419,3 @@ class Server:
         main_connection_thread.start()
 
 
-server = Server("첫번째 서버")
-server.open(*OPEN_PORT_LIST[0:2])

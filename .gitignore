@@ -1,5 +1,6 @@
 env.py
 __pycache__/
+.vscode/
 server/log/**
 !server/log/이 폴더를 지우지 마십시오.txt
 *.ai
