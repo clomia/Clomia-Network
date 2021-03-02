@@ -6,24 +6,29 @@ from typing import List, Tuple, Callable, NoReturn
 from itertools import cycle
 from queue import Queue
 from threading import Lock, Thread
-from env import (
-    BUF_SIZE,
-    SOCKET_QUEUE_SIZE,
-    SERVER_DATA_QUEUE_SIZE,
-    INSPECT_CODE_RANGE,
-    BINDING_SOCKET_QUEUE_SIZE,
-    MAPPING_TIME_OUT,
-    HTTP_METHOD_LIST,
-)
+
+#------------- env -------------
+# ? 네트워크 버퍼 크기랑 잘 맞는 2의 거듭제곱으로 설정
+BUF_SIZE: int = 4096
+# ? 응답 소켓 객체와 서버소켓의 큐 사이즈
+SOCKET_QUEUE_SIZE: int = 40
+# ? 클라이언트에서 오는 모든 데이터가 입력되는 큐 사이즈
+SERVER_DATA_QUEUE_SIZE: int = 200
+# ? 입력 소켓과 응답 소켓이 묶이자마자 들어가는 큐 사이즈
+BINDING_SOCKET_QUEUE_SIZE: int = 40
+# ? (초단위)입력소켓과 응답소켓이 묶일때까지 기다려줄수 있는 최대 시간
+MAPPING_TIME_OUT: int = 2
+HTTP_METHOD_LIST = ["GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS", "TRACE", "CONNECT"]
+INSPECT_CODE_RANGE: Tuple[int, int] = (10000, 100000)
+#------------- env -------------
+
+now: Callable[[], str] = lambda: time.strftime("(%m/%d) %H시 %M분 %S초|")
+socket_data = Tuple[socket.socket, Tuple[str, int]]
 
 def remove_socket(sock, error_message=""):
     sock.close()
     del sock
     print(f"{error_message}\n:소켓을 제거하였습니다.")
-
-
-now: Callable[[], str] = lambda: time.strftime("(%m/%d) %H시 %M분 %S초|")
-socket_data = Tuple[socket.socket, Tuple[str, int]]
 
 
 class SendallMethodException(Exception):
@@ -423,7 +428,7 @@ class Server:
         self.input_port = input_port
         self.response_port = response_port
         print(
-            f"서버명:{self.name}{now()}서버가 실행되었습니다. -- 입력용 포트번호: {input_port} , 응답용 포트번호: {response_port}"
+            f"\n서버명:{self.name}{now()}서버가 실행되었습니다. -- 입력용 포트번호: {input_port} , 응답용 포트번호: {response_port}"
         )
         set_up_connection_thread = Thread(
             target=self.connection_generation_loop)
