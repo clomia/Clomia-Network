@@ -1,7 +1,6 @@
 import os,subprocess
 from itertools import cycle
 from typing import Dict,Tuple,List,Union
-from server_constructor import Server
 server_set = Dict[Tuple[int,int],List[Union[str,bytes]]]
 
 class Excutor:
@@ -9,7 +8,7 @@ class Excutor:
     def __init__(self,servers:server_set):
         """ {(입력포트,응답포트):[이름,ip,암호:str], ...}딕셔너리 를 받아서 세팅한다 """
         self.server_eles = servers
-        self.server_settings = [] # ['50000', '50001', '서버이름' ,'ip' ,'암호']
+        self.server_settings = [] # ['입력포트', '응답포트', '서버이름' ,'ip' ,'암호']
         for ports,property in servers.items():
             self.server_settings.append([str(ports[0]),str(ports[1])]+property)
         self.server_count = len(self.server_settings)
@@ -45,33 +44,5 @@ class Excutor:
         for setting_ele in server_eles:
             server_obj,ports = setting_ele
             server_obj.open(*ports)
-"""
-setting = {
-    (50000,50001):['서버1',"192.168.219.101","이것은 암호입니다"],
-    (50002,50003):['2222',"192.168.219.101","이것은 암호입니다"],
-    (50000,50001):['실험용',"192.168.219.101","이것은 암호입니다"],
-    (50002,50003):['2222',"192.168.219.101","이것은 암호입니다"],
-    (50000,50001):['실험용',"192.168.219.101","이것은 암호입니다"],
-    (50002,50003):['2222',"192.168.219.101","이것은 암호입니다"],
-    (50000,50001):['실험용',"192.168.219.101","이것은 암호입니다"],
-    (50002,50003):['2222',"192.168.219.101","이것은 암호입니다"],
-    (50000,50001):['실험용',"192.168.219.101","이것은 암호입니다"],
-    (50002,50003):['2222',"192.168.219.101","이것은 암호입니다"],
-    }
-"""
-setting = {}
-#! 서버 2천개 열기 : 실험에 앞서서 DMZ포트포워딩으로 모든 포트를 뚫어놨다
-#! 총 4천개의 포트를 사용한다 이미 어디선가 사용중인 포트를 사용하려는 쓰레드는 중단된다
-#? 6코어 CPU 윈도우 환경에서 대략 2000개 까지는 문제없이 실행 가능했다
-for i in range(0,2000,2):
-    ports = (i+40000,i+40001)
-    command = [f'{i+1}번째 서버',"192.168.219.101","이것은 암호입니다"]
-    setting[ports] = command
 
 
-Excutor(setting).run()
-
-
-
-
-#python server_constructor.py 50000 50001 안녕 192.168.219.101 이것은암호입니다
