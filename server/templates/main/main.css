@@ -33,14 +33,14 @@ body {
 }
 
 .gif__server {
-    width: 102vmin;
-    height: 60vmin;
+    width: 153vmin;
+    height: 90vmin;
     border: 1px solid whitesmoke;
 }
 
 .gif__client{
-    width: 102vmin;
-    height: 120vmin;
+    width: 153vmin;
+    height: 180vmin;
     border: 1px solid whitesmoke;
 }
 
