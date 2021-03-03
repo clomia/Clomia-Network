@@ -20,7 +20,10 @@ BINDING_SOCKET_QUEUE_SIZE: int = 40
 MAPPING_TIME_OUT: int = 2
 HTTP_METHOD_LIST = ["GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS", "TRACE", "CONNECT"]
 INSPECT_CODE_RANGE: Tuple[int, int] = (10000, 100000)
-#------------- env -------------
+#------------- templates -------------
+convert_200 = lambda template_dir:HttpResponse(TemplateController(template_dir).assembling()).response_200()
+INTRO_PAGE = convert_200("templates/intro")
+#--------------------------------------
 
 now: Callable[[], str] = lambda: time.strftime("(%m/%d) %H시 %M분 %S초|")
 socket_data = Tuple[socket.socket, Tuple[str, int]]
@@ -355,13 +358,9 @@ class Server:
                         http_method := (http_request := inspect_code.decode()).split(" ")[0]
                     ) in HTTP_METHOD_LIST:
                         print(
-                            f"\n서버명:{self.name}{now()}HTTP 요청 메세지[{http_method}]를 감지했습니다. HTTP응답으로 웹 페이지를 회신합니다. 페이지: main\n{http_request}\n"
+                            f"\n서버명:{self.name}{now()}HTTP 요청 메세지[{http_method}]를 감지했습니다. HTTP응답으로 웹 페이지를 회신합니다. 페이지: intro\n{http_request}\n"
                         )
-                        main_template = TemplateController("templates/main")
-                        completed_html = main_template.assembling()
-                        http_request = HttpResponse(
-                            completed_html).response_200()
-                        response_socket.sendall(http_request)
+                        response_socket.sendall(INTRO_PAGE)
                         # http_response(response_socket)
                         response_socket.close()
                         continue
