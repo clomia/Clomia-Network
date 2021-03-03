@@ -159,7 +159,8 @@ class Connection(Thread):
         self.pk = Connection._counter
         self.unique_prefix = f"ID{self.pk}|{self.client_name}: "
         welcome_message = (
-            "-"*40+"\n"
+            '\n'+"-"*40+"\n"
+            + f'브라우저로 접속할때는 아래의 URL을 사용하면 됩니다.\n{server.private_ip}:{server.response_port}\n'+'-'*40+'\n\n'
             + f"접속한 서버 이름: {server.name}\n"
             + f"입장 시간: {now()[:-5]}\nID: {self.pk}\n"
             + f"AI가 작명한 당신의 이름 : {self.client_name}\n"
@@ -308,6 +309,8 @@ class Server:
         """ 입력 소켓을 인스팩트코드와 매핑시켜서 (socket_mapping에)저장하는 루프이다"""
         while True:
             input_socket_data = self.input_socket_generator()  # * Blocking
+            if not input_socket_data:
+                continue
             print(
                 f"서버명:{self.name}{now()}인스팩트 코드를 생성한뒤 클라이언트로 발송하였습니다. 인스팩트 코드 : {self.inspect_code_obj.inspect_code}"
             )
@@ -352,7 +355,7 @@ class Server:
                         http_method := (http_request := inspect_code.decode()).split(" ")[0]
                     ) in HTTP_METHOD_LIST:
                         print(
-                            f"\n서버명:{self.name}{now()}HTTP 요청 메세지를 감지했습니다. HTTP응답으로 웹 페이지를 회신합니다. 페이지: main\n{http_request}\n"
+                            f"\n서버명:{self.name}{now()}HTTP 요청 메세지[{http_method}]를 감지했습니다. HTTP응답으로 웹 페이지를 회신합니다. 페이지: main\n{http_request}\n"
                         )
                         main_template = TemplateController("templates/main")
                         completed_html = main_template.assembling()
@@ -415,21 +418,22 @@ class Server:
                 else:
                     rejection_message = (
                         f"서버명:{self.name}{now()}IP: {client_ip}, 포트번호:{port}로 접속을 시도하고 있는것을 확인했습니다. 요청 암호가 잘못되었습니다. 접속을 거부합니다. "
-                    ).encode("utf-8")
-                    try:
-                        input_socket.sendall(rejection_message)
-                    except ConnectionResetError:
-                        raise SendallMethodException
+                    )
+                    print(rejection_message)
+                    input_socket.sendall(rejection_message.encode("utf-8"))
+                    raise ConnectionResetError
             else:
                 raise RecvMethodException
             return client_request
         except ConnectionResetError:
             remove_socket(
-                self.sock, f"서버명:{self.name}{now()}입력대기중에 클라이언트가 사라졌습니다 ")
+                input_socket, f"서버명:{self.name}{now()}입력대기중에 클라이언트가 사라졌습니다 | 혹은 접속 요청을 받았으나 암호가 잘못되었습니다.")
         except SendallMethodException as e:
-            remove_socket(self.sock, f"서버명:{self.name}{now()}{e}")
+            remove_socket(input_socket, f"서버명:{self.name}{now()}{e}")
         except RecvMethodException as e:
-            remove_socket(self.sock, f"서버명:{self.name}{now()}{e}")
+            remove_socket(input_socket, f"서버명:{self.name}{now()}{e}")
+        return False
+
 
     def open(self, input_port: int, response_port: int):
         """ 서버를 실행한다 """
@@ -438,6 +442,7 @@ class Server:
         print(
             f"\n서버명:{self.name}{now()}서버가 실행되었습니다. -- 입력용 포트번호: {input_port} , 응답용 포트번호: {response_port}"
         )
+        print('-'*40+f'\n브라우저로 접속할때는 아래의 URL을 사용하면 됩니다.\n{self.private_ip}:{self.response_port}\n'+'-'*40)
         set_up_connection_thread = Thread(
             target=self.connection_generation_loop)
         main_connection_thread = Thread(target=self.main_processing_loop)
