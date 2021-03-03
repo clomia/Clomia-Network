@@ -1,5 +1,5 @@
 import os
-
+from templates import DEFAULT_PAGE,TEMPLATE_MAPPING
 
 class TemplateController:
     """
@@ -51,3 +51,15 @@ class HttpResponse:
 
     def response_200(self):
         return (self.start_line + self.header + self.body).encode("utf-8")
+
+template_engine = lambda template_dir:HttpResponse(TemplateController(template_dir).assembling()).response_200()
+
+def template_mapping(http_request:str) -> bytes:
+    """ HTTP GET 요청에 따라 TEMPLATE_MAP에서 올바른 템플릿찾아서 리턴한다"""
+    url_path = http_request.split("GET ")[1].split(" HTTP/")[0]
+    try:
+        return template_engine(TEMPLATE_MAPPING[url_path])
+    except KeyError:
+        #? url이 잘못되었을 경우 기본으로 DEFAULT_PAGE를 리턴한다
+        return template_engine(DEFAULT_PAGE)
+

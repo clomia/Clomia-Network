@@ -5,7 +5,7 @@ from queue import Queue
 from threading import Lock, Thread
 from typing import List, Tuple, Callable, NoReturn
 from korean_name_generator import namer
-from http_manager import TemplateController, HttpResponse
+from http_manager import template_mapping
 
 #------------- env -------------
 # ? 네트워크 버퍼 크기랑 잘 맞는 2의 거듭제곱으로 설정
@@ -21,25 +21,7 @@ MAPPING_TIME_OUT: int = 2
 HTTP_METHOD_LIST = ["GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS", "TRACE", "CONNECT"]
 INSPECT_CODE_RANGE: Tuple[int, int] = (10000, 100000)
 #------------- Templates Control-------------
-template_engine = lambda template_dir:HttpResponse(TemplateController(template_dir).assembling()).response_200()
-intro_page = template_engine("templates/intro")
 
-#? 여기에 {url주소 : 페이지}를 매핑하면 된다
-DEFAULT_PAGE = intro_page
-TEMPLATE_MAP = {
-    '/intro':intro_page,
-    }
-
-
-
-def template_mapping(http_request:str) -> bytes:
-    """ HTTP GET 요청에 따라 TEMPLATE_MAP에서 올바른 템플릿찾아서 리턴한다"""
-    url_path = http_request.split("GET ")[1].split(" HTTP/")[0]
-    try:
-        return TEMPLATE_MAP[url_path]
-    except KeyError:
-        #? url이 잘못되었을 경우 기본으로 DEFAULT_PAGE를 리턴한다
-        return DEFAULT_PAGE
 #-----------------------------------------------
 
 
@@ -352,8 +334,9 @@ class Server:
                 inspect_code = response_socket.recv(BUF_SIZE)
             except ConnectionResetError:
                 remove_socket(self.sock, f"{now()}입력대기중에 클라이언트가 사라졌습니다 ")
+            print_inspect_code = "형식에 맞지 않음" if len(inspect_code) > 5  else inspect_code
             print(
-                f"서버명:{self.name}{now()}[회신을 받았습니다]연결 구축 요청 : IP: {ip} , Port: {port}, 인스팩트 코드: {inspect_code}\n: 응답 소켓이 생성되었습니다"
+                f"서버명:{self.name}{now()}[회신을 받았습니다]연결 구축 요청 : IP: {ip} , Port: {port}, 인스팩트 코드: {print_inspect_code}\n: 응답 소켓이 생성되었습니다"
             )
             for inspect_code_obj in tuple(self.socket_mapping.keys()):
                 if inspect_code_obj.inspect_code == inspect_code:
