@@ -1,11 +1,11 @@
 import socket,random,os,sys,time
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
-from http_manager import TemplateController, HttpResponse
-from korean_name_generator import namer
-from typing import List, Tuple, Callable, NoReturn
 from itertools import cycle
 from queue import Queue
 from threading import Lock, Thread
+from typing import List, Tuple, Callable, NoReturn
+from korean_name_generator import namer
+from http_manager import TemplateController, HttpResponse
 
 #------------- env -------------
 # ? 네트워크 버퍼 크기랑 잘 맞는 2의 거듭제곱으로 설정
@@ -20,10 +20,28 @@ BINDING_SOCKET_QUEUE_SIZE: int = 40
 MAPPING_TIME_OUT: int = 2
 HTTP_METHOD_LIST = ["GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS", "TRACE", "CONNECT"]
 INSPECT_CODE_RANGE: Tuple[int, int] = (10000, 100000)
-#------------- templates -------------
-convert_200 = lambda template_dir:HttpResponse(TemplateController(template_dir).assembling()).response_200()
-INTRO_PAGE = convert_200("templates/intro")
-#--------------------------------------
+#------------- Templates Control-------------
+template_engine = lambda template_dir:HttpResponse(TemplateController(template_dir).assembling()).response_200()
+intro_page = template_engine("templates/intro")
+
+#? 여기에 {url주소 : 페이지}를 매핑하면 된다
+DEFAULT_PAGE = intro_page
+TEMPLATE_MAP = {
+    '/intro':intro_page,
+    }
+
+
+
+def template_mapping(http_request:str) -> bytes:
+    """ HTTP GET 요청에 따라 TEMPLATE_MAP에서 올바른 템플릿찾아서 리턴한다"""
+    url_path = http_request.split("GET ")[1].split(" HTTP/")[0]
+    try:
+        return TEMPLATE_MAP[url_path]
+    except KeyError:
+        #? url이 잘못되었을 경우 기본으로 DEFAULT_PAGE를 리턴한다
+        return DEFAULT_PAGE
+#-----------------------------------------------
+
 
 now: Callable[[], str] = lambda: time.strftime("(%m/%d) %H시 %M분 %S초|")
 socket_data = Tuple[socket.socket, Tuple[str, int]]
@@ -360,7 +378,8 @@ class Server:
                         print(
                             f"\n서버명:{self.name}{now()}HTTP 요청 메세지[{http_method}]를 감지했습니다. HTTP응답으로 웹 페이지를 회신합니다. 페이지: intro\n{http_request}\n"
                         )
-                        response_socket.sendall(INTRO_PAGE)
+                        current_page = template_mapping(http_request)
+                        response_socket.sendall(current_page)
                         # http_response(response_socket)
                         response_socket.close()
                         continue
