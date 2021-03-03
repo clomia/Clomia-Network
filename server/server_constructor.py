@@ -162,7 +162,7 @@ class Connection(Thread):
             "-"*40+"\n"
             + f"접속한 서버 이름: {server.name}\n"
             + f"입장 시간: {now()[:-5]}\nID: {self.pk}\n"
-            + f"AI가 작명한 이름 : {self.client_name}\n"
+            + f"AI가 작명한 당신의 이름 : {self.client_name}\n"
             + f"\n{self.client_name}님 환영합니다. 이 콘솔창은 디스플레이로 사용됩니다.\n"
             + "디스플레이에 어떠한 입력도 하지 마십시오.\n\n"
             +"-"*40+"\n"
@@ -182,7 +182,9 @@ class Connection(Thread):
         self.input_thread.join()
         #! 클라이언트 측에서는 수신,발신 소켓을 모두 끊어야 한다
         # * Blocking # ! 두 쓰레드는 문제가 생기면 while을 빠져나와 종료하라 그러면 알아서 여기로 도달하게되고 이 아래에서 뒤처리를 한다
-        notice = f"\n서버명:{self.server.name}{now()}안내 메시지: {self.client_name} 님이 없어졌습니다.\n"
+        with self.lock:
+            self.server.user_count -= 1
+        notice = f"\n[정보]서버명:{self.server.name}{now()}안내 메시지: {self.client_name} 님이 없어졌습니다.\n현재 인원수: {self.server.user_count}\n"
         print(
             notice,
             f"\n{now()}{self.unique_prefix}탈주를 확인했습니다. 관련 소켓들이 모두 제거되었으며 해당 Connection쓰레드를 종료합니다",
@@ -246,7 +248,7 @@ class RecordingQueue(Queue):
     def put(self, item, block=True, timeout=None):
         super().put(item, block, timeout)
         now_date = time.strftime("%Y년%m월%d일")
-        msg = item.decode()
+        msg = item.decode() 
         log_path = os.path.dirname(os.path.realpath(__file__)) + "/" + "log"
         file_list = os.listdir(log_path)
         mode = "a" if f"서버명[{self.name}]({now_date}).txt" in file_list else "w"
@@ -269,6 +271,7 @@ class Server:
         self.socket_mapping = SocketMappingDict()
         self.binding_socket_queue = Queue(BINDING_SOCKET_QUEUE_SIZE)
         self.name: str = name
+        self.user_count = 0
 
     def main_processing_loop(self):
         """ 데이터 큐에 데이터가 들어오면 그것을 모든 클라이언트에게 전송하는 루프 = 대화를 담당"""
@@ -297,6 +300,8 @@ class Server:
                 + f"입력 소켓과 대응되는 클라이언트의 발신 소켓: IP: {input_socket_ip}, Port: {input_socket_port}\n"
                 + f"응답 소켓과 대응되는 클라이언트의 수신 소켓: IP: {response_socket_ip}, Port: {response_socket_port}\n"
             )
+            self.user_count += 1
+            self.data_queue.put(f"\n[정보] {client_name} 님이 입장했습니다. 현재 인원수: {self.user_count}\n".encode('utf-8'))
             thread.start()
 
     def input_socket_mapping_loop(self):
