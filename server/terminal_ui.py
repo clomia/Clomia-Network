@@ -3,7 +3,10 @@ from executor import Excutor
 
 PATH = os.path.dirname(os.path.realpath(__file__))
 
-
+def get_external_ip():
+    """ 네이버 서버를 이용한다 """
+    response = requests.get("https://search.naver.com/search.naver?where=nexearch&sm=top_hty&fbm=0&ie=utf8&query=%EB%82%B4ip")
+    return response.text.split('class="ip_chk_box">')[1].split("</div>")[0]
 
 def set_dir(path) -> str:
     lst = os.listdir(path)
@@ -112,11 +115,9 @@ def make_settings_io() -> dict:
         if not server_count:
             server_count = len(ports_list)
         print("이제 기기의 정보를 수집합니다...")
-        response = requests.get(
-            "https://search.naver.com/search.naver?where=nexearch&sm=top_hty&fbm=0&ie=utf8&query=%EB%82%B4ip"
-        )
+
         host_name = socket.gethostname()
-        external_ip = response.text.split('class="ip_chk_box">')[1].split("</div>")[0]
+        external_ip = get_external_ip()
         internal_ip = socket.gethostbyname(socket.gethostname())
         print(f"""
         Host Name: {host_name} , 내부 IP: {internal_ip} , 외부 IP: {external_ip}\n

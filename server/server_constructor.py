@@ -5,7 +5,8 @@ from queue import Queue
 from threading import Lock, Thread
 from typing import List, Tuple, Callable, NoReturn
 from korean_name_generator import namer
-from http_manager import template_mapping
+from http_manager import template_mapping,http_method
+from terminal_ui import get_external_ip
 
 #------------- env -------------
 # ? 네트워크 버퍼 크기랑 잘 맞는 2의 거듭제곱으로 설정
@@ -355,17 +356,19 @@ class Server:
                             f"서버명:{self.name}{now()}인스팩트 코드{inspect_code} 와 매칭되는 소켓이 없습니다. 요청을 무시합니다"
                         )
                         continue
-                    elif (
-                        http_method := (http_request := inspect_code.decode()).split(" ")[0]
-                    ) in HTTP_METHOD_LIST:
-                        print(
-                            f"\n서버명:{self.name}{now()}HTTP 요청 메세지[{http_method}]를 감지했습니다. HTTP응답으로 웹 페이지를 회신합니다. 페이지: intro\n{http_request}\n"
-                        )
-                        current_page = template_mapping(http_request)
-                        response_socket.sendall(current_page)
-                        # http_response(response_socket)
-                        response_socket.close()
-                        continue
+                    elif (method := http_method(inspect_code)) in HTTP_METHOD_LIST:
+                        http_request = inspect_code.decode()
+                        if method == "GET":
+                            print(
+                                f"\n서버명:{self.name}{now()}HTTP 요청 메세지[{method}]를 감지했습니다. HTTP응답으로 웹 페이지를 회신합니다. 페이지: intro\n{http_request}\n"
+                            )
+                            current_page = template_mapping(http_request)
+                            response_socket.sendall(current_page)
+                            # http_response(response_socket)
+                            response_socket.close()
+                            continue
+                        elif method == "POST":
+                            continue
                     else:
                         print(
                             f"서버명:{self.name}{now()}인스팩트 코드도 아니고 HTTP요청도 아닌 알 수 없는 요청을 받았습니다. 무시합니다"
@@ -443,7 +446,7 @@ class Server:
         print(
             f"\n서버명:{self.name}{now()}서버가 실행되었습니다. -- 입력용 포트번호: {input_port} , 응답용 포트번호: {response_port}"
         )
-        print('-'*40+f'\n브라우저로 접속할때는 아래의 URL을 사용하면 됩니다.\n{self.private_ip}:{self.response_port}\n'+'-'*40)
+        print('-'*40+f'\n브라우저로 접속할때는 아래의 URL을 사용하면 됩니다.\n{get_external_ip()}:{self.response_port}\n'+'-'*40+'\n')
         set_up_connection_thread = Thread(
             target=self.connection_generation_loop)
         main_connection_thread = Thread(target=self.main_processing_loop)

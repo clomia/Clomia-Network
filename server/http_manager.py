@@ -54,6 +54,9 @@ class HttpResponse:
 
 template_engine = lambda template_dir:HttpResponse(TemplateController(template_dir).assembling()).response_200()
 
+def http_method(http_request:str) -> str:
+    return http_request.decode().split(" ")[0]
+
 def template_mapping(http_request:str) -> bytes:
     """ HTTP GET 요청에 따라 TEMPLATE_MAP에서 올바른 템플릿찾아서 리턴한다"""
     url_path = http_request.split("GET ")[1].split(" HTTP/")[0]
@@ -63,3 +66,9 @@ def template_mapping(http_request:str) -> bytes:
         #? url이 잘못되었을 경우 기본으로 DEFAULT_PAGE를 리턴한다
         return template_engine(DEFAULT_PAGE)
 
+def control_database(http_request:str,redirect_template_dir:str) -> bytes:
+    """ 
+    POST 요청에서 form으로 입력된 정보에 따라 데이터베이스를 조작한다
+    데이터베이스를 수정하고 완료 페이지로 이동한다
+    """
+    url_path = http_request.split("POST ")[1].split(" HTTP/")[0]
