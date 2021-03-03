@@ -1,5 +1,8 @@
 import os
+import socket
+from threading import Thread
 from templates import DEFAULT_PAGE,TEMPLATE_MAPPING
+from urllib import parse
 
 class TemplateController:
     """
@@ -54,8 +57,11 @@ class HttpResponse:
 
 template_engine = lambda template_dir:HttpResponse(TemplateController(template_dir).assembling()).response_200()
 
-def http_method(http_request:str) -> str:
-    return http_request.decode().split(" ")[0]
+def http_method(http_request:bytes) -> str:
+    try:
+        return http_request.decode().split(" ")[0]
+    except UnicodeDecodeError: #https:// 점미사 헨들링
+        return False
 
 def template_mapping(http_request:str) -> bytes:
     """ HTTP GET 요청에 따라 TEMPLATE_MAP에서 올바른 템플릿찾아서 리턴한다"""
@@ -72,3 +78,33 @@ def control_database(http_request:str,redirect_template_dir:str) -> bytes:
     데이터베이스를 수정하고 완료 페이지로 이동한다
     """
     url_path = http_request.split("POST ")[1].split(" HTTP/")[0]
+
+class HttpServe(Thread):
+    """ 80번 포트로 들어오는 "공식적인" 웹 접속을 처리한다 """
+    def __init__(self,private_ip:str):
+        super().__init__()
+        self.private_ip = private_ip
+
+
+    def run(self):
+        while True:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                sock.bind((self.private_ip, 80))
+                sock.listen(4096)
+                sock, (ip, port) = sock.accept()  # * Blocking
+                request_msg = sock.recv(4096)
+                method = http_method(request_msg)
+                request_msg = request_msg.decode()
+                if method == "GET":
+                    print(
+                        f"\n 80번 포트로 들어온 HTTP 요청 메세지[{method}]를 감지했습니다. HTTP응답으로 웹 페이지를 회신합니다. 페이지: intro\n{request_msg}\n"
+                    )
+                    current_page = template_mapping(request_msg)
+                    sock.sendall(current_page)
+                elif method == "POST":
+                    a = parse.unquote(request_msg)
+                    print(a)
+                sock.close()
+                continue
+
+HttpServe('192.168.219.102').start()
