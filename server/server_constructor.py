@@ -1,5 +1,6 @@
 import socket,random,os,sys,time
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
+from urllib import parse
 from itertools import cycle
 from queue import Queue
 from threading import Lock, Thread
@@ -357,12 +358,12 @@ class Server:
                         )
                         continue
                     elif (method := http_method(inspect_code)) in HTTP_METHOD_LIST:
-                        http_request = inspect_code.decode()
+                        http_request = parse.unquote(inspect_code)
                         if not method:
                             continue
                         if method == "GET":
                             print(
-                                f"\n서버명:{self.name}{now()}HTTP 요청 메세지[{method}]를 감지했습니다. HTTP응답으로 웹 페이지를 회신합니다. 페이지: intro\n{http_request}\n"
+                                f"\n서버명:{self.name}{now()}HTTP 요청 메세지[{method}]를 감지했습니다. HTTP응답으로 회신합니다.\n{http_request}\n"
                             )
                             current_page = template_mapping(http_request)
                             response_socket.sendall(current_page)
