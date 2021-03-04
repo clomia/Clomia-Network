@@ -1,4 +1,4 @@
-import os,socket,pickle,time
+import os,socket,pickle,time,gzip
 from threading import Thread,Lock
 from templates import DEFAULT_PAGE,TEMPLATE_MAPPING
 from urllib import parse
@@ -19,7 +19,7 @@ class TemplateController:
     html,css,js는 하나씩 받으므로 css 와 js를 단일 파일로 작성해야 한다. (복잡한 import는 고려하지 않았다)
     """
 
-    def __init__(self, dir_path):
+    def __init__(self, dir_path,html:str=None):
         """
         현재 위치를 기준으로 html,css,js가 하나씩 들어있는 폴더명을 입력받아서
         html,css,js파일을 모두 읽은뒤 속성으로 할당한다 속성명은 파일 확장자와 같다\n
@@ -30,10 +30,14 @@ class TemplateController:
         templates_path = os.path.dirname(os.path.realpath(__file__)) + "/" + dir_path
         file_list = os.listdir(templates_path)
         extension = lambda file_name: file_name.split(".")[1]
-        current_extensions = ["html", "css", "js"]
+        current_extensions = ["html", "css", "js"] if not html else ["css", "js"]
         try:
             for file_name in file_list:
-                current_extensions.pop(current_extensions.index(extension(file_name)))
+                try:
+                    current_extensions.pop(current_extensions.index(extension(file_name)))
+                except ValueError:
+                    setattr(self,'html',html)
+                    continue
                 file_path = templates_path + "/" + file_name
                 with Lock():
                     with open(file_path, "r", encoding="utf-8") as file:  #!뮤텍스 락 필요
@@ -102,7 +106,8 @@ def read_db(db_name) -> dict:
 
 def apply_forum_html(db_query):
     """ 
-    DB로 forum html파일을 렌더링하고 저장한다
+    딕셔너리로로 forum html파일을 작성하고 파일을 저장한다
+    그리고 완성한 html 스트링을 리턴한다
     [중요!!] 쓰레드에서는 반드시 뮤텍스 락을 걸고 함수를 실행해야 한다\n
     """
     path = PATH+'/templates/forum/forum.html'
@@ -116,7 +121,6 @@ def apply_forum_html(db_query):
             삭제
         </button>
         <form name="delForm" class="del-form display-none" action="/forum" method="post">
-            <input type="text" class="delForm__id" name="text_id" placeholder="   글 아이디" />
             <input type="password" class="delForm__password" name="password" placeholder="   비밀번호" />
             <button type="submit" class="del-btn">
                 삭제
@@ -128,12 +132,13 @@ def apply_forum_html(db_query):
         html = file.read()
     text_boxes = ""
     for password,(text,date_time) in db_query.items():
-        text_boxes += text_box_gen(text,date_time)
+        text_boxes = text_box_gen(text,date_time) + text_boxes
     area = html.split('<!--text-box 시작점-->\n')
-    area[0] += ("<!--text-box 시작점-->\n"+text_boxes)
-    new_html = ''.join(area)
+    clear_html =  area[0] + "<!--text-box 시작점-->\n"
+    new_html = clear_html + text_boxes + '<!--<script src="forum.js"></script>--></body></html>'
     with open(path,'w',encoding="utf-8") as file:
         file.write(new_html)
+    return new_html
 
 
 def apply_db(dictionary,db_name) -> str:
@@ -151,12 +156,22 @@ def extract_query(request):
     """ POST request str에서 쿼리스트링을 딕셔너리로 반환한다"""
     query_strings = request.split("\n")[-1].replace("+", " ").split("&")
     query_dict = {}
-    for query in query_strings:
-        key, value = query.split("=")
-        query_dict[key] = value
+    try:
+        for query in query_strings:
+            key, value = query.split("=")
+            if not value and key == 'password':
+                query_dict['password'] = str(time.time())
+            else :
+                query_dict[key] = value
+    except ValueError:
+        sep = request.split('text=')
+        if '&password=' in sep[0]:
+            text = request.split('text=')[1]
+        else:
+            text = request.split('text=')[1].split('&password=' )[0]
+        query_dict['text'] = text
+        query_dict['password'] = str(time.time())
     return query_dict
-
-
 
 
 class HttpServe(Thread):
@@ -184,16 +199,32 @@ class HttpServe(Thread):
                     current_page = template_mapping(request_msg)
                     sock.sendall(current_page)
                 elif method == "POST":
+                    db_query = db_query if (db_query := read_db('forum')) else {}
                     with self.lock:
-                        input_query = extract_query(request_msg)
-                        db_query = db_query if (db_query := read_db('forum')) else {}
-                        ((_,text),(_,password)) = list(input_query.items())
+                        try:
+                            input_query = extract_query(request_msg)
+                            for text,date_time in db_query.values():
+                                if text == input_query['text']:
+                                    sock.sendall(template_engine(TEMPLATE_MAPPING['/forum']))
+                                    raise ValueError
+                        except ValueError:
+                            sock.sendall(template_engine(TEMPLATE_MAPPING['/forum']))
+                            sock.close()
+                            continue
+                        except KeyError:
+                            sock.sendall(template_engine(TEMPLATE_MAPPING['/forum']))
+                            sock.close()
+                            continue
+                        password = input_query['password']
+                        text = input_query['text']
                         now = time.strftime('%Y년 %m월 %d일 %X')
                         db_query[password] = (text,now)
                         apply_db(db_query,'forum')
-                        apply_forum_html(db_query)
-                        sock.sendall(template_engine(TEMPLATE_MAPPING['/forum']))
+                        html = apply_forum_html(db_query)
+                        template_dir = TEMPLATE_MAPPING['/forum']
+                        template = HttpResponse(TemplateController(template_dir,html).assembling()).response_200()
+                        sock.sendall(template)
                 sock.close()
                 continue
-#! { 비번:(글,date_time) } , 1.신호 받기 2.read_db 3.(가공하기) 4.apply_db 끝!
+#! { (비번,date_time):글 } , 1.신호 받기 2.read_db 3.(가공하기) 4.apply_db 끝!
 HttpServe('192.168.219.102').start()
