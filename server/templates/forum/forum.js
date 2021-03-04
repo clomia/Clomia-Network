@@ -1,9 +1,7 @@
 const inputOpenBtn = document.querySelector('.input-open-btn');
 const textInput = document.querySelector('.text-input');
-const delBtn = document.querySelectorAll('.del-btn')[0]
-const delForm = document.querySelector('.del-form')
-
-console.log(delBtn)
+const delBtn = document.querySelectorAll('.del-btn')[0];
+const delForm = document.querySelector('.del-form');
 let isClicked_inputOpen = false;
 function inputOpen(event) {
     if (isClicked_inputOpen === false) {
