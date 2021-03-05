@@ -133,7 +133,7 @@ def apply_forum_html(db_query):
         text_boxes = text_box_gen(text,date_time) + text_boxes
     area = html.split('<!--text-box 시작점-->\n')
     clear_html =  area[0] + "<!--text-box 시작점-->\n"
-    new_html = clear_html + text_boxes + '<!--<script src="forum.js"></script>--></body></html>'
+    new_html = clear_html + text_boxes+'</div>' + '<!--<script src="forum.js"></script>--></body></html>'
     with open(path,'w',encoding="utf-8") as file:
         file.write(new_html)
     return new_html

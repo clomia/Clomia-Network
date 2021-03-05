@@ -22,8 +22,6 @@ BINDING_SOCKET_QUEUE_SIZE: int = 40
 MAPPING_TIME_OUT: int = 2
 HTTP_METHOD_LIST = ["GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS", "TRACE", "CONNECT"]
 INSPECT_CODE_RANGE: Tuple[int, int] = (10000, 100000)
-#------------- Templates Control-------------
-
 #-----------------------------------------------
 
 
@@ -335,7 +333,11 @@ class Server:
             try:
                 inspect_code = response_socket.recv(BUF_SIZE)
             except ConnectionResetError:
-                remove_socket(self.sock, f"{now()}입력대기중에 클라이언트가 사라졌습니다 ")
+                try:
+                    remove_socket(self.sock, f"{now()}입력대기중에 클라이언트가 사라졌습니다 ")
+                    continue
+                except:
+                    continue
             print_inspect_code = "형식에 맞지 않음" if len(inspect_code) > 5  else inspect_code
             print(
                 f"서버명:{self.name}{now()}[회신을 받았습니다]연결 구축 요청 : IP: {ip} , Port: {port}, 인스팩트 코드: {print_inspect_code}\n: 응답 소켓이 생성되었습니다"

@@ -12,31 +12,33 @@
 </head>
 
 <body>
-    <form name="testForm" action="/intro" method="post">
-        <div>
-            <label for="name">Name:</label>
-            <input type="text" id="name" name="이름" />
-        </div>
-        <div>
-            <label for="mail">E-mail:</label>
-            <input type="text" id="mail" name="메일" />
-        </div>
-        <button type="submit">Send your message</button>
-    </form>
-
-    <div class="hello">
-        <h1>Clomia Network에 오신것을 환영합니다</h1>
-        <p>소프트웨어를 다운받아서 통신망을 구축할 수 있습니다</p>
-        <a href="https://www.iana.org/domains/example">
-            <div class="btn">다운로드</div>
+    <div class="hello-box">
+        <div class="hello-box__hello">Clomia Network에 오신것을 환영합니다</div>
+        <div class="hello-box__discreption">전용 소프트웨어로 통신망을 이용할 수 있습니다</div>
+    </div>
+    <div class="bownload">
+        <a href="#">
+            <div class="bownload__client-download">클라이언트 다운로드</div>
+        </a>
+        <a href="#">
+            <div class="bownload__server-download">서버 다운로드</div>
         </a>
     </div>
-    <div class="gif">
-        <div class="gif__server"></div>
-        <div class="gif__info">서버를 오픈하는 gif입니다 이런데에 JS</div>
-        <div class="gif__client"></div>
-        <div class="gif__info">클라이언트로 구동하는 gif입니다</div>
+    <div class="link">
+        <a href="/forum">
+            <div class="link__forum">포럼 이동하기</div>
+        </a>
+        <a href="#">
+            <div class="link__tech">기술문서 보기</div>
+        </a>
     </div>
+    <div class="info">
+        <a href="https://github.com/clomia/Clomia-Network" target="_blank">
+            <div class="github">Go to GitHub Repository</div>
+        </a>
+        <div class="email">Email: clomia.sig@gmail.com</div>
+    </div>
+    <div class="copyright">Copyright 2021. 원정후 all rights reserved</div>
     <script src="intro.js"></script>
 </body>
 
