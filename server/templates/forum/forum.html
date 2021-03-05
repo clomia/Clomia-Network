@@ -8,7 +8,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="shortcut icon" href="https://raw.githubusercontent.com/clomia/Chatting-Space/master/img/favicon-red.ico"
         type="image/x-icon">
-    <!--<link rel="stylesheet" href="forum.css">-->
+    <link rel="stylesheet" href="forum.css">
 </head>
 
 <body>
@@ -18,272 +18,44 @@
             글쓰기
         </div>
     </div>
+    <div class="del-box">
+        <form name="delForm" class="del-form display-none" action="/forum" method="post">
+            <input type="password" class="del-form__password" required name="del_password" placeholder="글 비밀번호" />
+            <button type="submit" class="del-btn">
+                삭제
+            </button>
+        </form>
+        <button type="submit" class="del-open-btn">
+            삭제하기
+        </button>
+    </div>
     <form class="text-input display-none" name="textInputForm" action="/forum" method="POST">
         <div class="text-input__main">
             <textarea class="text-input-box" name='text' placeholder="이곳에 글을 입력해주세요" required></textarea>
-            <input type="password" class="text-input-password" name="password" placeholder="비밀번호(선택사항)" />
+            <input type="password" class="text-input-password" name="password" placeholder="삭제용 비밀번호(선택사항)" />
             <button type="submit" class="text-input-submit">등록</button>
         </div>
     </form>
     <!--text-box 시작점-->
 
     <div class="text-box">
-        <div class="text-box__id">2021년 03월 05일 09:47:59</div>
+        <div class="text-box__id">2021년 03월 05일 13:12:11</div>
         <div class="text-box__main">
-            <p>이건 잘 되지 ㅎㅎ</p>
+            <p>후하하하하하하핳 이건 비번 쓰기 귀차나ㅏㅏㅏ</p>
         </div>
-        <button type="submit" class="del-btn">
-            삭제
-        </button>
-        <form name="delForm" class="del-form display-none" action="/forum" method="post">
-            <input type="password" class="delForm__password" name="password" placeholder="   비밀번호" />
-            <button type="submit" class="del-btn">
-                삭제
-            </button>
-        </form>
     </div>
     
     <div class="text-box">
-        <div class="text-box__id">2021년 03월 04일 23:28:44</div>
+        <div class="text-box__id">2021년 03월 05일 13:09:20</div>
         <div class="text-box__main">
-            <p>이게 쓰다가..ㅠ</p>
+            <p>상ㄱ</p>
         </div>
-        <button type="submit" class="del-btn">
-            삭제
-        </button>
-        <form name="delForm" class="del-form display-none" action="/forum" method="post">
-            <input type="password" class="delForm__password" name="password" placeholder="   비밀번호" />
-            <button type="submit" class="del-btn">
-                삭제
-            </button>
-        </form>
     </div>
     
     <div class="text-box">
-        <div class="text-box__id">2021년 03월 04일 23:28:25</div>
+        <div class="text-box__id">2021년 03월 05일 13:08:52</div>
         <div class="text-box__main">
-            <p>그래도 뭐 에러 안나는게 어디야 증말 ㅎㅎ</p>
+            <p>간당</p>
         </div>
-        <button type="submit" class="del-btn">
-            삭제
-        </button>
-        <form name="delForm" class="del-form display-none" action="/forum" method="post">
-            <input type="password" class="delForm__password" name="password" placeholder="   비밀번호" />
-            <button type="submit" class="del-btn">
-                삭제
-            </button>
-        </form>
-    </div>
-    
-    <div class="text-box">
-        <div class="text-box__id">2021년 03월 04일 23:27:38</div>
-        <div class="text-box__main">
-            <p>띄어쓰기+적용!
-
-ㅇㅇㅇ
-
-짜잔</p>
-        </div>
-        <button type="submit" class="del-btn">
-            삭제
-        </button>
-        <form name="delForm" class="del-form display-none" action="/forum" method="post">
-            <input type="password" class="delForm__password" name="password" placeholder="   비밀번호" />
-            <button type="submit" class="del-btn">
-                삭제
-            </button>
-        </form>
-    </div>
-    
-    <div class="text-box">
-        <div class="text-box__id">2021년 03월 04일 23:16:54</div>
-        <div class="text-box__main">
-            <p>띄어쓰기가 있으니까 안되네...</p>
-        </div>
-        <button type="submit" class="del-btn">
-            삭제
-        </button>
-        <form name="delForm" class="del-form display-none" action="/forum" method="post">
-            <input type="password" class="delForm__password" name="password" placeholder="   비밀번호" />
-            <button type="submit" class="del-btn">
-                삭제
-            </button>
-        </form>
-    </div>
-    
-    <div class="text-box">
-        <div class="text-box__id">2021년 03월 04일 23:16:46</div>
-        <div class="text-box__main">
-            <p>머지</p>
-        </div>
-        <button type="submit" class="del-btn">
-            삭제
-        </button>
-        <form name="delForm" class="del-form display-none" action="/forum" method="post">
-            <input type="password" class="delForm__password" name="password" placeholder="   비밀번호" />
-            <button type="submit" class="del-btn">
-                삭제
-            </button>
-        </form>
-    </div>
-    
-    <div class="text-box">
-        <div class="text-box__id">2021년 03월 04일 23:16:31</div>
-        <div class="text-box__main">
-            <p>와우 홀리쒭</p>
-        </div>
-        <button type="submit" class="del-btn">
-            삭제
-        </button>
-        <form name="delForm" class="del-form display-none" action="/forum" method="post">
-            <input type="password" class="delForm__password" name="password" placeholder="   비밀번호" />
-            <button type="submit" class="del-btn">
-                삭제
-            </button>
-        </form>
-    </div>
-    
-    <div class="text-box">
-        <div class="text-box__id">2021년 03월 04일 23:16:27</div>
-        <div class="text-box__main">
-            <p>와 그리고 속도도 개빨랔ㅋㅋㅋㅋ</p>
-        </div>
-        <button type="submit" class="del-btn">
-            삭제
-        </button>
-        <form name="delForm" class="del-form display-none" action="/forum" method="post">
-            <input type="password" class="delForm__password" name="password" placeholder="   비밀번호" />
-            <button type="submit" class="del-btn">
-                삭제
-            </button>
-        </form>
-    </div>
-    
-    <div class="text-box">
-        <div class="text-box__id">2021년 03월 04일 23:16:20</div>
-        <div class="text-box__main">
-            <p>다행히다 그치?</p>
-        </div>
-        <button type="submit" class="del-btn">
-            삭제
-        </button>
-        <form name="delForm" class="del-form display-none" action="/forum" method="post">
-            <input type="password" class="delForm__password" name="password" placeholder="   비밀번호" />
-            <button type="submit" class="del-btn">
-                삭제
-            </button>
-        </form>
-    </div>
-    
-    <div class="text-box">
-        <div class="text-box__id">2021년 03월 04일 23:16:16</div>
-        <div class="text-box__main">
-            <p>ㅋㅋㅋㅋㅋㅋㅋ</p>
-        </div>
-        <button type="submit" class="del-btn">
-            삭제
-        </button>
-        <form name="delForm" class="del-form display-none" action="/forum" method="post">
-            <input type="password" class="delForm__password" name="password" placeholder="   비밀번호" />
-            <button type="submit" class="del-btn">
-                삭제
-            </button>
-        </form>
-    </div>
-    
-    <div class="text-box">
-        <div class="text-box__id">2021년 03월 04일 23:16:12</div>
-        <div class="text-box__main">
-            <p>이제 글자가 보이지?</p>
-        </div>
-        <button type="submit" class="del-btn">
-            삭제
-        </button>
-        <form name="delForm" class="del-form display-none" action="/forum" method="post">
-            <input type="password" class="delForm__password" name="password" placeholder="   비밀번호" />
-            <button type="submit" class="del-btn">
-                삭제
-            </button>
-        </form>
-    </div>
-    
-    <div class="text-box">
-        <div class="text-box__id">2021년 03월 04일 23:16:05</div>
-        <div class="text-box__main">
-            <p>짜짠 내가봥</p>
-        </div>
-        <button type="submit" class="del-btn">
-            삭제
-        </button>
-        <form name="delForm" class="del-form display-none" action="/forum" method="post">
-            <input type="password" class="delForm__password" name="password" placeholder="   비밀번호" />
-            <button type="submit" class="del-btn">
-                삭제
-            </button>
-        </form>
-    </div>
-    
-    <div class="text-box">
-        <div class="text-box__id">2021년 03월 04일 23:03:06</div>
-        <div class="text-box__main">
-            <p>1614866586.778883</p>
-        </div>
-        <button type="submit" class="del-btn">
-            삭제
-        </button>
-        <form name="delForm" class="del-form display-none" action="/forum" method="post">
-            <input type="password" class="delForm__password" name="password" placeholder="   비밀번호" />
-            <button type="submit" class="del-btn">
-                삭제
-            </button>
-        </form>
-    </div>
-    
-    <div class="text-box">
-        <div class="text-box__id">2021년 03월 04일 22:59:59</div>
-        <div class="text-box__main">
-            <p></p>
-        </div>
-        <button type="submit" class="del-btn">
-            삭제
-        </button>
-        <form name="delForm" class="del-form display-none" action="/forum" method="post">
-            <input type="password" class="delForm__password" name="password" placeholder="   비밀번호" />
-            <button type="submit" class="del-btn">
-                삭제
-            </button>
-        </form>
-    </div>
-    
-    <div class="text-box">
-        <div class="text-box__id">2021년 03월 04일 22:59:52</div>
-        <div class="text-box__main">
-            <p></p>
-        </div>
-        <button type="submit" class="del-btn">
-            삭제
-        </button>
-        <form name="delForm" class="del-form display-none" action="/forum" method="post">
-            <input type="password" class="delForm__password" name="password" placeholder="   비밀번호" />
-            <button type="submit" class="del-btn">
-                삭제
-            </button>
-        </form>
-    </div>
-    
-    <div class="text-box">
-        <div class="text-box__id">2021년 03월 04일 22:55:20</div>
-        <div class="text-box__main">
-            <p>하하하하하</p>
-        </div>
-        <button type="submit" class="del-btn">
-            삭제
-        </button>
-        <form name="delForm" class="del-form display-none" action="/forum" method="post">
-            <input type="password" class="delForm__password" name="password" placeholder="   비밀번호" />
-            <button type="submit" class="del-btn">
-                삭제
-            </button>
-        </form>
     </div>
     <!--<script src="forum.js"></script>--></body></html>

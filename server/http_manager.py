@@ -19,7 +19,7 @@ class TemplateController:
     html,css,js는 하나씩 받으므로 css 와 js를 단일 파일로 작성해야 한다. (복잡한 import는 고려하지 않았다)
     """
 
-    def __init__(self, dir_path,html:str=None):
+    def __init__(self, dir_path,html:str=None,add_js:str=None):
         """
         현재 위치를 기준으로 html,css,js가 하나씩 들어있는 폴더명을 입력받아서
         html,css,js파일을 모두 읽은뒤 속성으로 할당한다 속성명은 파일 확장자와 같다\n
@@ -30,7 +30,11 @@ class TemplateController:
         templates_path = os.path.dirname(os.path.realpath(__file__)) + "/" + dir_path
         file_list = os.listdir(templates_path)
         extension = lambda file_name: file_name.split(".")[1]
-        current_extensions = ["html", "css", "js"] if not html else ["css", "js"]
+        if not html:
+            current_extensions = ["html", "css", "js"]
+        else :
+            current_extensions = ["css", "js"]
+        self.add_js = add_js
         try:
             for file_name in file_list:
                 try:
@@ -54,7 +58,10 @@ class TemplateController:
 
         decomposition = css_complete.split("</body>")
         decomposition[1] = "</body>" + decomposition[1]
-        decomposition[0] += '\n<script type="text/javascript">\n' + self.js + "\n</script>\n"
+        if self.add_js:
+            decomposition[0] += ('\n<script type="text/javascript">\n'+ self.add_js +'\n' + self.js + "\n</script>\n")
+        else:
+            decomposition[0] += ('\n<script>\n'+ self.js + "\n</script>\n")
         return "".join(decomposition)
 
 
@@ -117,15 +124,6 @@ def apply_forum_html(db_query):
         <div class="text-box__main">
             <p>{text}</p>
         </div>
-        <button type="submit" class="del-btn">
-            삭제
-        </button>
-        <form name="delForm" class="del-form display-none" action="/forum" method="post">
-            <input type="password" class="delForm__password" name="password" placeholder="   비밀번호" />
-            <button type="submit" class="del-btn">
-                삭제
-            </button>
-        </form>
     </div>
     """
     with open(path,'r',encoding='utf-8') as file:
@@ -161,9 +159,12 @@ def extract_query(request):
             key, value = query.split("=")
             if not value and key == 'password':
                 query_dict['password'] = str(time.time())
+            elif key == "del_password":
+                return value
             else :
                 query_dict[key] = value
     except ValueError:
+        # "\n"이 포함된 본문 처리부분
         sep = request.split('text=')
         if '&password=' in sep[0]:
             text = request.split('text=')[1]
@@ -182,6 +183,21 @@ class HttpServe(Thread):
         self.private_ip = private_ip
         self.lock = Lock()
 
+    def ignore_to_forum(self,sock):
+        """ forum템플릿을 전송하고 소켓을 닫는다 """
+        sock.sendall(template_engine(TEMPLATE_MAPPING['/forum']))
+        sock.close()
+
+    def apply_data(self,db_query,sock,add_js:str = None):
+        """ 
+        db_query딕셔너리를 db에 적용하고 템플릿을 렌더링 한 뒤에 소켓으로 전송한다
+        add_js인자로 js코드가 들어오면 db영향 없이 js코드만 템플릿에 더해서 전송한다.
+        """
+        apply_db(db_query,'forum')
+        html = apply_forum_html(db_query)
+        template_dir = TEMPLATE_MAPPING['/forum']
+        template = HttpResponse(TemplateController(template_dir,html,add_js).assembling()).response_200()
+        sock.sendall(template)
 
     def run(self):
         while True:
@@ -203,27 +219,39 @@ class HttpServe(Thread):
                     with self.lock:
                         try:
                             input_query = extract_query(request_msg)
+                            if isinstance(input_query,str):
+                                # 여기서 input_quert는 글을 삭제하기 위한 암호다
+                                try:
+                                    deleted = db_query.pop(input_query)
+                                except KeyError:
+                                    add_js = """
+                                    alert(`암호에 해당하는 글이 없습니다.
+
+글을 작성하실때 암호를 입력하지 않았을 경우
+메일 등으로 연락 주시면 삭제해 드리겠습니다.`)
+                                    """
+                                    self.apply_data(db_query,sock,add_js)
+                                else:
+                                    self.apply_data(db_query,sock)
+                                    print(f'[POST] 글이 삭제되었습니다.\n삭제된 글: {deleted}')
+                                sock.close()
+                                continue
                             for text,date_time in db_query.values():
                                 if text == input_query['text']:
                                     sock.sendall(template_engine(TEMPLATE_MAPPING['/forum']))
                                     raise ValueError
                         except ValueError:
-                            sock.sendall(template_engine(TEMPLATE_MAPPING['/forum']))
-                            sock.close()
+                            self.ignore_to_forum(sock)
                             continue
                         except KeyError:
-                            sock.sendall(template_engine(TEMPLATE_MAPPING['/forum']))
-                            sock.close()
+                            self.ignore_to_forum(sock)
                             continue
                         password = input_query['password']
                         text = input_query['text']
-                        now = time.strftime('%Y년 %m월 %d일 %X')
+                        print(f'[POST]글 등록:{text} \n글 암호: {password}')
+                        now = f"{time.strftime('%Y년 %m월 %d일 %X')}"
                         db_query[password] = (text,now)
-                        apply_db(db_query,'forum')
-                        html = apply_forum_html(db_query)
-                        template_dir = TEMPLATE_MAPPING['/forum']
-                        template = HttpResponse(TemplateController(template_dir,html).assembling()).response_200()
-                        sock.sendall(template)
+                        self.apply_data(db_query,sock)
                 sock.close()
                 continue
 #! { (비번,date_time):글 } , 1.신호 받기 2.read_db 3.(가공하기) 4.apply_db 끝!
