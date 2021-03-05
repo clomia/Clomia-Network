@@ -446,12 +446,15 @@ class Server:
         """ 서버를 실행한다 """
         self.input_port = input_port
         self.response_port = response_port
+        external_ip = get_external_ip()
         print(
             f"\n서버명:{self.name}{now()}서버가 실행되었습니다. -- 입력용 포트번호: {input_port} , 응답용 포트번호: {response_port}"
         )
         print('-'*40
-            +f'\n브라우저로 접속할때는 아래의 URL을 사용하면 됩니다.\n{get_external_ip()}:{self.response_port}\n'
-            +'(80번 포트가 열려있다면 포트번호 생략 가능)(DNS서버를 사용중이라면 등록한 도메인으로 접속 가능)\n'+'-'*40+'\n')
+            +f'\n인트로 웹 페이지를 아래의 URL로 오픈하였습니다.\n{external_ip}:{self.response_port}\n'
+            +'포럼을 비롯한 모든 웹 서비스는 80번 포트(HTTP전용포트)로만 제공할수 있습니다.\n'
+            +f'80번 포트가 열려있다면 {external_ip} 로 웹 서비스를 제공합니다.\n' 
+            +'-'*40+'\n')
         set_up_connection_thread = Thread(
             target=self.connection_generation_loop)
         main_connection_thread = Thread(target=self.main_processing_loop)

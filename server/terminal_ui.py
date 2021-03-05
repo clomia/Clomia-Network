@@ -1,5 +1,7 @@
 import os, pickle,socket, requests
 from executor import Excutor
+from http_manager import HttpServe
+
 
 PATH = os.path.dirname(os.path.realpath(__file__))
 
@@ -42,6 +44,7 @@ def read_setting(setting_dir,setting_name) -> dict:
 
 
 def make_settings_io() -> dict:
+    internal_ip = socket.gethostbyname(socket.gethostname())
     setting_dir = set_dir(PATH)
     setting_tuple = tuple(map(lambda x:x[:-15],os.listdir(setting_dir)))
     if setting_tuple:
@@ -54,14 +57,14 @@ def make_settings_io() -> dict:
             +">>>")
         setting_name = input(msg)
         if setting_name and setting_name != "clear":
-            return read_setting(setting_dir,setting_name)
+            return read_setting(setting_dir,setting_name),internal_ip
         elif setting_name == 'clear':
             for setting in os.listdir(setting_dir):
                 os.remove(f'{setting_dir}/{setting}')
             print("모든 설정들이 삭제되었습니다.")
     print("""
     서버 설정을 시작합니다. 사용하는 인터넷에 포트 포워딩이 된 상태여야 합니다 (권장: 40000 ~ 49151 사이의 포트)\n
-    사용 가능한 포트번호들을 입력해주세요. DMZ(모든 포트)를 오픈한 경우 엔터를 눌러주세요.
+    80번(HTTP) 포트를 제외하고 사용 가능한 포트번호들을 입력해주세요. DMZ(모든 포트)를 오픈한 경우 엔터를 눌러주세요.
         참고: 외부포트가 내부포트와 동일한 번호로 1:1 대응된다는 가정 하에 설정합니다.\n
     입력 종료는 엔터키 입니다.
         """)
@@ -118,7 +121,6 @@ def make_settings_io() -> dict:
 
         host_name = socket.gethostname()
         external_ip = get_external_ip()
-        internal_ip = socket.gethostbyname(socket.gethostname())
         print(f"""
         Host Name: {host_name} , 내부 IP: {internal_ip} , 외부 IP: {external_ip}\n
             참고: 클라이언트 측에서 접근할때는 "외부 IP:포트번호" 를 사용해야 합니다. 
@@ -139,11 +141,18 @@ def make_settings_io() -> dict:
         if setting_name:
             write_setting(setting_dir,setting_name,settings)
             print('설정파일을 생성,저장하였습니다.')
-        return settings
+        return settings,internal_ip
         
 
+def run_web_server_io(internal_ip):
+    if not input('80번 포트가 열려있지 않다면 "n"을 입력해주세요.\n80번 포트가 열려있다면 엔터를 눌러주세요 웹 서비스를 시작합니다...\n>>>'):
+        HttpServe(internal_ip).start()
+        print('[80번 포트...]웹 서비스를 실행하였습니다')
+
+
 def main():
-    settings = make_settings_io()
+    settings,internal_ip = make_settings_io()
+    run_web_server_io(internal_ip)
     Excutor(settings).run()
 
 if __name__ == "__main__":

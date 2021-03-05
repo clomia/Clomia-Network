@@ -254,5 +254,4 @@ class HttpServe(Thread):
                         self.apply_data(db_query,sock)
                 sock.close()
                 continue
-#! { (비번,date_time):글 } , 1.신호 받기 2.read_db 3.(가공하기) 4.apply_db 끝!
-HttpServe('192.168.219.102').start()
+
