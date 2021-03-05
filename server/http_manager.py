@@ -1,4 +1,4 @@
-import os,socket,pickle,time,gzip
+import os,socket,pickle,time
 from threading import Thread,Lock
 from templates import DEFAULT_PAGE,TEMPLATE_MAPPING
 from urllib import parse
