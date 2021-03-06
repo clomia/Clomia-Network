@@ -187,6 +187,7 @@ class HttpServe(Thread):
         """ forum템플릿을 전송하고 소켓을 닫는다 """
         sock.sendall(template_engine(TEMPLATE_MAPPING['/forum']))
         sock.close()
+        del sock
 
     def apply_data(self,db_query,sock,add_js:str = None):
         """ 
@@ -253,5 +254,6 @@ class HttpServe(Thread):
                         db_query[password] = (text,now)
                         self.apply_data(db_query,sock)
                 sock.close()
+                del sock
                 continue
 
