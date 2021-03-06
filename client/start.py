@@ -1,8 +1,4 @@
-# 서버 ip , 서버의 입력용 포트번호와 응답용 포트번호 , 암호
-
-import os, socket, re, pickle, time
-from threading import Thread
-from queue import Queue
+import os, re, pickle, time
 
 ipv4_pattern = re.compile(
     "^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
@@ -197,8 +193,6 @@ def clomia_network_info() -> tuple:
     __secret_code = "LX25ECz"
     return (__server_ip, __server_input_port, __server_response_port, __secret_code)
 
-
-#!settings = (server_ip,server_input_port,server_response_port,secret_code)
 
 
 def get_setting():
