@@ -94,54 +94,66 @@ def make_settings_io() -> dict:
             port_pair.append(port)
     if not count:
         server_count = int(input("""
-        몇 개의 서버를 오픈할지 숫자로 입력해 주세요. (사용 가능한 최대 포트 갯수 = 64,511 -> 이걸로 서버를 32,255개 오픈)
+    몇 개의 서버를 오픈할지 숫자로 입력해 주세요. 포트번호를 자동 세팅합니다.
 
-        참고 : 인텔® 코어™ i5-9400F 프로세서(6코어)로 윈도우 10에서 돌렸을때 서버가 대략 2000개 까지 안정적으로 오픈되는걸 확인했습니다.
-        >>>"""))
-    else :
-        msg = (f"{len(ports_list)}개의 서버를 열 수 있습니다.\n"
-                +"몇 개의 서버를 오픈할지 숫자로 입력해 주세요.\n"
-                +"모두 오픈은 엔터를 눌러주세요.\n"
-                +">>>")
-        server_count = 0
-        while value := input(msg):
-            try:
-                server_count = int(value)
-                if server_count > (useable := len(ports_list)):
-                    print(f'{useable}개 이하의 서버를 열 수 있습니다.')
-                    continue
-                else:
-                    break
-            except TypeError:
-                print('\n숫자를 입력해주세요\n\n')
+    참고 :  인텔® 코어™ i5-9400F 프로세서(6코어)로 윈도우 10에서 돌렸을때 서버가 대략 2000개 까지 안정적으로 오픈되는걸 확인했습니다.
+            서버 수가 2000개를 상회하는 경우 CPU 코어들에게 전달하는 명령어 길이가 길어짐으로 인해서 문제가 발생하는것을 확인했습니다. 
+            즉, 코어 수가 가장 중요합니다.
+>>>"""))
+        all_ports_list = list(range(40000,40000+int(server_count)*2))
+        ports_list = []
+        port_pair = []
+        for port in all_ports_list:
+            if len(port_pair) == 1:
+                port_pair.append(port)
+                ports = tuple(port_pair)
+                ports_list.append(ports)
+                port_pair.clear()
+            else:
+                port_pair.append(port)
+    msg = (f"{len(ports_list)}개의 서버를 열 수 있습니다.\n"
+            +"몇 개의 서버를 오픈할지 숫자로 입력해 주세요.\n"
+            +"모두 오픈은 엔터를 눌러주세요.\n"
+            +">>>")
+    server_count = 0
+    while value := input(msg):
+        try:
+            server_count = int(value)
+            if server_count > (useable := len(ports_list)):
+                print(f'{useable}개 이하의 서버를 열 수 있습니다.')
                 continue
-        if not server_count:
-            server_count = len(ports_list)
-        print("이제 기기의 정보를 수집합니다...")
+            else:
+                break
+        except TypeError:
+            print('\n숫자를 입력해주세요\n\n')
+            continue
+    if not server_count:
+        server_count = len(ports_list)
+    print("이제 기기의 정보를 수집합니다...")
 
-        host_name = socket.gethostname()
-        external_ip = get_external_ip()
-        print(f"""
-        Host Name: {host_name} , 내부 IP: {internal_ip} , 외부 IP: {external_ip}\n
-            참고: 클라이언트 측에서 접근할때는 "외부 IP:포트번호" 를 사용해야 합니다. 
-            브라우저로 접속하면 Clomia Network 웹 서버로써 HTTP통신 규약대로 응답 합니다.
-        """)
-        settings = {}
-        for count,port_pair in zip(range(1,server_count+1),ports_list):
-            print(f'{count}번째 서버를 입력포트: {port_pair[0]},응답포트: {port_pair[1]} 로 설정합니다.')
-            while not (server_name := input("서버의 이름을 정해주세요.\n>>>")):
-                print('공백은 입력받지 않습니다.')
-            while not (secret_code := input("서버의 암호를 정해주세요.\n>>>")):
-                print('공백은 입력받지 않습니다.')
-            settings[port_pair] = [server_name,internal_ip,secret_code]
-        msg = ("설정이 완료되었습니다. 설정을 저장합니다. 이 설정의 이름을 입력해주세요.\n"
-                +"저장하지 않고 진행하시려면 엔터를 눌러주세요.\n"
-                +">>>")
-        setting_name = input(msg)
-        if setting_name:
-            write_setting(setting_dir,setting_name,settings)
-            print('설정파일을 생성,저장하였습니다.')
-        return settings,internal_ip
+    host_name = socket.gethostname()
+    external_ip = get_external_ip()
+    print(f"""
+    Host Name: {host_name} , 내부 IP: {internal_ip} , 외부 IP: {external_ip}\n
+        참고: 클라이언트 측에서 접근할때는 "외부 IP:포트번호" 를 사용해야 합니다. 
+        브라우저로 접속하면 Clomia Network 웹 서버로써 HTTP통신 규약대로 응답 합니다.
+    """)
+    settings = {}
+    for count,port_pair in zip(range(1,server_count+1),ports_list):
+        print(f'{count}번째 서버를 입력포트: {port_pair[0]},응답포트: {port_pair[1]} 로 설정합니다.')
+        while not (server_name := input("서버의 이름을 정해주세요.\n>>>")):
+            print('공백은 입력받지 않습니다.')
+        while not (secret_code := input("서버의 암호를 정해주세요.\n>>>")):
+            print('공백은 입력받지 않습니다.')
+        settings[port_pair] = [server_name,internal_ip,secret_code]
+    msg = ("설정이 완료되었습니다. 설정을 저장합니다. 이 설정의 이름을 입력해주세요.\n"
+            +"저장하지 않고 진행하시려면 엔터를 눌러주세요.\n"
+            +">>>")
+    setting_name = input(msg)
+    if setting_name:
+        write_setting(setting_dir,setting_name,settings)
+        print('설정파일을 생성,저장하였습니다.')
+    return settings,internal_ip
         
 
 def run_web_server_io(internal_ip):

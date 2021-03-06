@@ -217,5 +217,5 @@ def get_setting():
 if __name__ == "__main__":
     server_ip, server_input_port, server_response_port, secret_code = get_setting()
     os.system(
-        f"start cmd \k {PATH}/communication/transmission.py {server_ip} {server_input_port} {server_response_port} {secret_code}"
+        f"start cmd /k {PATH}/communication/transmission.py {server_ip} {server_input_port} {server_response_port} {secret_code}"
     )
