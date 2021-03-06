@@ -3,10 +3,7 @@ import os, re, pickle, time
 ipv4_pattern = re.compile(
     "^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
 )
-
-PATH: str = os.path.dirname(os.path.realpath(__file__))
-BUF_SIZE: int = 4096
-INSPECT_CODE_RANGE: tuple = (10000, 100000)
+PATH: str = os.path.dirname(os.path.realpath("start"))
 
 
 def set_dir(path) -> str:

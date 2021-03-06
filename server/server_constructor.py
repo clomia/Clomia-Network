@@ -1,5 +1,5 @@
 import socket,random,os,sys,time
-sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
+sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname("server_constructor"))))
 from urllib import parse
 from itertools import cycle
 from queue import Queue
@@ -253,7 +253,7 @@ class RecordingQueue(Queue):
         super().put(item, block, timeout)
         now_date = time.strftime("%Y년%m월%d일")
         msg = item.decode() 
-        log_path = os.path.dirname(os.path.realpath(__file__)) + "/" + "log"
+        log_path = os.path.dirname(os.path.realpath("server_constructor")) + "/log"
         file_list = os.listdir(log_path)
         mode = "a" if f"서버명[{self.name}]({now_date}).txt" in file_list else "w"
         with open(log_path + f"/서버명[{self.name}]({now_date}).txt", mode, encoding="utf-8") as file:

@@ -9,7 +9,9 @@ def set_dir(path) -> str:
     if not 'DB' in lst:
         os.mkdir(setting_dir)
     return setting_dir
-PATH = os.path.dirname(os.path.realpath(__file__))
+
+
+PATH = os.path.dirname(os.path.realpath('http_manager'))
 DB_PATH = set_dir(PATH)
 DATA_LIST = os.listdir(DB_PATH)
 

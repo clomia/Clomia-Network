@@ -3,7 +3,7 @@ from executor import Excutor
 from http_manager import HttpServe
 
 
-PATH = os.path.dirname(os.path.realpath(__file__))
+PATH = os.path.dirname(os.path.realpath('terminal_ui'))
 
 def get_external_ip():
     """ 네이버 서버를 이용한다 """

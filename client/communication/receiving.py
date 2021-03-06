@@ -1,34 +1,49 @@
-import socket
+import socket, time, sys,os
+
+BUF_SIZE: int = 4096
+
+class ConnectionExceptions(Exception):
+    pass
+
+def make_socket(server_ip:str,server_response_port:str):
+    """ 소켓을 생성하고 주소와 포트번호로 connet한다 """
+    sock = socket.socket()
+    try:
+        sock.connect((server_ip,int(server_response_port)))
+    except:
+        print('서버ip 혹은 포트번호가 잘못되었습니다.')
+        raise ConnectionExceptions
+    return sock
+
+def send_inspect_code(sock,inspect_code:str):
+    sock.sendall(inspect_code.encode('utf-8'))
+
+def communication(sock,secret_code:str):
+    """ while True 루프를 돌면서 메세지 수신과 디스플레이 기능을 수행한다"""
+    secret_code = secret_code.encode('utf-8')
+    try:
+        while True:
+            msg = sock.recv(BUF_SIZE).decode()
+            print(msg)
+            sock.sendall(secret_code)
+    except:
+        raise ConnectionExceptions
+
+notice = ("\n\n\n이 콘솔은 디스플레이 스크린입니다.\n\n\n")
+
+if __name__ == "__main__":
+    script, server_ip, server_input_port, server_response_port, secret_code,inspect_code = sys.argv
+    try:
+        sock = make_socket(server_ip,server_response_port)
+        send_inspect_code(sock,inspect_code)
+        communication(sock,secret_code)
+    except ConnectionExceptions:
+        print("[에러] 서버와 연결을 시도하다가 문제가 발생했습니다.\n"
+        +"----------예상 원인----------\n"
+        +"(1)암호 인증 실패\n"
+        +"(2)서버 사라짐\n"
+        +"-----------------------------\n"
+        )
+        input('확인(enter)')
 
 
-host = "112.158.160.11"
-port = 50001
-SECRET_CODE = "이것은 암호입니다".encode("utf-8")  #
-
-#! 수신용 소켓
-
-
-def run_client(receiving_socket):
-    run(receiving_socket)
-    while True:
-        recive(receiving_socket)
-
-
-receiving_socket = socket.socket()
-receiving_socket.connect((host, port))
-
-
-def run(receiving_socket):
-    inspect_code = input("인스펙트 코드 입력:").encode("utf-8")  # !연결 구축 요청[3]
-    receiving_socket.sendall(inspect_code)  # 이 순간부터 서버에서 커넥션이 생성되고 쓰레드들이 실행된다
-
-
-def recive(receiving_socket):
-    msg = receiving_socket.recv(1024)
-    print(f"메세지 : {msg.decode()}")
-    receiving_socket.sendall(SECRET_CODE)
-
-
-run_client(receiving_socket)
-
-# 인스팩트 코드를 보내는 소캣은 무조건 수신용 소켓이다

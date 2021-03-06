@@ -13,7 +13,7 @@ class Excutor:
             self.server_settings.append([str(ports[0]),str(ports[1])]+property)
         self.server_count = len(self.server_settings)
         self.cpu_count = os.cpu_count()
-        self.path = os.path.dirname(os.path.realpath(__file__))
+        self.path = os.path.dirname(os.path.realpath('executor'))
     
     def run(self):
         """ 균등하게 작업단위를 생성한 뒤 필요한 만큼(최대=머신의 CPU갯수) 프로세스를 생성하여 병렬 실행합니다 """
