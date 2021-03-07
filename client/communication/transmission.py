@@ -35,12 +35,17 @@ def communication(sock):
     try:
         while True:
             msg = input('>>> ').encode('utf-8')
+            if not msg:
+                continue
             sock.sendall(msg)
             sock.recv(BUF_SIZE)
     except:
         raise ConnectionExceptions
 
-notice = ("\n\n\n이 콘솔은 메세지 입력창으로 사용됩니다.\n\n\n")
+notice = ("\n"
+    +"------------------이 콘솔은 메세지 입력창으로 사용됩니다.------------------\n\n"
+    +"---------[창의 새로길이를 줄여서 스크린 콘솔 아래에 배치해주세요]----------\n"
+    +"\n\n")
 
 if __name__ == "__main__":
     script, server_ip, server_input_port, server_response_port, secret_code = sys.argv
@@ -52,7 +57,7 @@ if __name__ == "__main__":
         )
         print(notice)
         time.sleep(1) #서버가 connection을 구축하기 위한 여유시간
-        print('메세지를 입력해주세요.\n\n')
+        print('메세지를 입력해주세요.\n')
         communication(sock)
     except ConnectionExceptions:
         print("[에러] 서버와 연결을 시도하다가 문제가 발생했습니다.\n"

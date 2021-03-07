@@ -168,8 +168,7 @@ class Connection(Thread):
             + f"접속한 서버 이름: {server.name}\n"
             + f"입장 시간: {now()[:-5]}\nID: {self.pk}\n"
             + f"AI가 작명한 당신의 이름 : {self.client_name}\n"
-            + f"\n{self.client_name}님 환영합니다. 이 콘솔창은 디스플레이로 사용됩니다.\n"
-            + "디스플레이에 어떠한 입력도 하지 마십시오.\n\n"
+            + f"\n{self.client_name}님 환영합니다. 이 화면은 스크린 콘솔입니다.\n"
             +"-"*40+"\n"
         ).encode("utf-8")
         self.secret_code = secret_code
