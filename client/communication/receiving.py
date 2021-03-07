@@ -47,14 +47,14 @@ def msg_interface(msg):
 def communication(sock,secret_code:str):
     """ while True 루프를 돌면서 메세지 수신과 디스플레이 기능을 수행한다"""
     secret_code = secret_code.encode('utf-8')
-    #try:
-    while True:
-        data = sock.recv(BUF_SIZE).decode()
-        msg = msg_interface(data)
-        print(msg)
-        sock.sendall(secret_code)
-    #except:
-        #raise ConnectionExceptions
+    try:
+        while True:
+            data = sock.recv(BUF_SIZE).decode()
+            msg = msg_interface(data)
+            print(msg)
+            sock.sendall(secret_code)
+    except:
+        raise ConnectionExceptions
 
 
 if __name__ == "__main__":
