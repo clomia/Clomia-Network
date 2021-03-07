@@ -217,6 +217,9 @@ class HttpServe(Thread):
                     )
                     current_page = template_mapping(request_msg)
                     sock.sendall(current_page)
+                    sock.close()
+                    del sock
+                    print('소켓을 제거하였습니다')
                 elif method == "POST":
                     db_query = db_query if (db_query := read_db('forum')) else {}
                     with self.lock:
@@ -249,13 +252,14 @@ class HttpServe(Thread):
                         except KeyError:
                             self.ignore_to_forum(sock)
                             continue
-                        password = input_query['password']
-                        text = input_query['text']
-                        print(f'[POST]글 등록:{text} \n글 암호: {password}')
-                        now = f"{time.strftime('%Y년 %m월 %d일 %X')}"
-                        db_query[password] = (text,now)
-                        self.apply_data(db_query,sock)
-                sock.close()
-                del sock
-                continue
+                        else:
+                            password = input_query['password']
+                            text = input_query['text']
+                            print(f'[POST]글 등록:{text} \n글 암호: {password}')
+                            now = f"{time.strftime('%Y년 %m월 %d일 %X')}"
+                            db_query[password] = (text,now)
+                            self.apply_data(db_query,sock)
+                            sock.close()
+                            del sock
+                            continue
 

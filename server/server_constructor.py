@@ -84,6 +84,7 @@ class ResponseSocket(Thread):
                     raise RecvMethodException
         except RecvMethodException:
             # 클라이언트의 수신용 소켓이 사라짐
+            print(f'암호 대신 받은것: {self.secret_code}')
             remove_socket(
                 self.sock, f"{self.server_name}{now()}클라이언트의 수신용 소켓이 보낸 SECRET_CODE가 잘못되었습니다.")
         except ConnectionResetError:
