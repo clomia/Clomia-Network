@@ -176,6 +176,27 @@ def extract_query(request):
         query_dict['password'] = str(time.time())
     return query_dict
 
+def request_verification(request_msg:str):
+    sources_verifications = [] #하나만 충족하면 된다
+    sources_verifications.append(lambda :"GET /intro" in request_msg.split('.')[0])
+    sources_verifications.append(lambda :"GET /docs" in request_msg.split('.')[0])
+    sources_verifications.append(lambda :"GET /forum" in request_msg.split('.')[0])
+    sources_verifications.append(lambda :"POST /forum" in request_msg.split('.')[0] and ("del_password" in request_msg or "password" in request_msg))
+    if not (True in [func() for func in sources_verifications]):
+        print(f'[요청검사결과 -거부] 요청의 출처가 올바르지 않습니다!!!!!!!!\n---거부한 요청메세지---\n{request_msg}')
+        return False
+    
+    message_verifications = [] #모든 조건을 충족해야 한다
+    message_verifications.append(lambda: not ('exec' in request_msg or 'eval' in request_msg))
+    message_verifications.append(lambda: "User-Agent" in request_msg)
+    message_verifications.append(lambda: not ("chmod" in request_msg))
+    message_verifications.append(lambda: request_msg.count("Accept") > 2)
+    if False in [func() for func in message_verifications]:
+        print(f'[요청검사결과 -거부] 요청메세지에 보안상 의심이 있습니다!!!!!!!!\n---거부한 요청메세지---\n{request_msg}')
+        return False
+    return True
+
+
 
 class HttpServe(Thread):
     """ 80번 포트로 들어오는 "공식적인" 웹 접속을 처리한다."""
@@ -211,6 +232,10 @@ class HttpServe(Thread):
                 request_msg = sock.recv(4096)
                 method = http_method(request_msg)
                 request_msg = parse.unquote(request_msg)
+                if not request_verification(request_msg):
+                    sock.close()
+                    del sock
+                    continue
                 if method == "GET":
                     print(
                         f"\n 80번 포트로 들어온 HTTP 요청 메세지[{method}]를 감지했습니다. HTTP응답으로 회신합니다.\n{request_msg}\n"
@@ -221,6 +246,9 @@ class HttpServe(Thread):
                     del sock
                     print('소켓을 제거하였습니다')
                 elif method == "POST":
+                    print(
+                        f"\n 80번 포트로 들어온 HTTP 요청 메세지[{method}]를 감지했습니다. 정보를 처리합니다.\n{request_msg}\n"
+                    )
                     db_query = db_query if (db_query := read_db('forum')) else {}
                     with self.lock:
                         try:

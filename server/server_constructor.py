@@ -6,7 +6,7 @@ from queue import Queue
 from threading import Lock, Thread
 from typing import List, Tuple, Callable, NoReturn
 from korean_name_generator import namer
-from http_manager import template_mapping,http_method
+from http_manager import template_mapping,http_method,request_verification
 from terminal_ui import get_external_ip
 
 #------------- env -------------
@@ -361,7 +361,9 @@ class Server:
                         continue
                     elif (method := http_method(inspect_code)) in HTTP_METHOD_LIST:
                         http_request = parse.unquote(inspect_code)
-                        if not method:
+                        if not request_verification(http_request):
+                            response_socket.close()
+                            del response_socket
                             continue
                         if method == "GET":
                             print(
@@ -371,6 +373,7 @@ class Server:
                             response_socket.sendall(current_page)
                             # http_response(response_socket)
                             response_socket.close()
+                            del response_socket
                             continue
                         elif method == "POST":
                             continue
