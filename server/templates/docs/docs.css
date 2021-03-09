@@ -1,0 +1,131 @@
+body {
+    background-color: #efefef;
+    margin: 0;
+    padding: 10vmin;
+    font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: whitesmoke;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+a { 
+    color: inherit;
+    text-decoration:none;
+} 
+.hello-box{
+    width: 90vmin;
+    padding: 3vmin 0;
+    background-color: #3b3b3aee;
+    border-radius: 2vmin;
+    box-shadow: 0 0 7px rgb(0 0 0 / 20%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 5vmin;
+}
+
+.hello-box__hello{
+    font-size: 4.7vmin;
+}
+
+.hello-box__discreption{
+    opacity: 0.5;
+}
+
+
+.linking {
+    color: black;
+}
+
+.notion{
+    background-color: #3b3b3aee;
+    width: 90vmin;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border-radius: 2vmin;
+    box-shadow: 0 0 7px rgb(0 0 0 / 20%);
+    margin-bottom: 5vmin;
+}
+
+.linking{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 5vmin;
+    margin: 2vmin 0;
+    padding: 0 2vmin;
+    border: 2px solid #efefef;
+    color: #efefef;
+    border-radius: 2vmin;
+    width: 30vmin;
+    transition: all 300ms ease-in-out;
+    font-size: 2vmin;
+}
+
+.linking:hover{
+    background-color: #efefef;
+    color: #3b3b3a;
+    font-weight: bold;
+}
+
+.parinator{
+    background-color: #3b3b3aee;
+    width: 90vmin;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border-radius: 2vmin;
+    box-shadow: 0 0 7px rgb(0 0 0 / 20%);
+    color: #efefefaf;
+    font-size: 2.5vmin;
+    font-weight: bold;
+    margin-bottom: 5vmin;
+}
+
+.video{
+    border: 5px solid #3b3b3a;
+    width: 90vmin;
+    height: 540px;
+    border-radius: 2vmin;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2vmin 0;
+}
+
+.p{
+    width: 75vmin;
+    text-align: center;
+    font-size: 2vmin;
+    color: #3b3b3a;
+}
+
+iframe{
+    border-radius: 2vmin;
+}
+
+
+.link-previous{
+    position: absolute;
+    top: 0;
+    left: 30%;
+    width: 40vmin;
+    height: 4vmin;
+    border: 1px solid #3b3b3a;
+    border-top: none;
+    border-bottom-left-radius: 2vmin;
+    border-bottom-right-radius: 2vmin;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #3b3b3a;
+    transition: all 500ms ease-in-out;
+    font-size: 2vmin;
+}
+
+.link-previous:hover{
+    height: 7vmin;
+    background-color: #3b3b3a;
+    color: #d8d8d8;
+}
