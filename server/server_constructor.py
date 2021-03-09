@@ -456,10 +456,10 @@ class Server:
             f"\n서버명:{self.name}{now()}서버가 실행되었습니다. -- 입력용 포트번호: {input_port} , 응답용 포트번호: {response_port}"
         )
         print('-'*40
-            +f'\n인트로 웹 페이지를 아래의 URL로 오픈하였습니다.\n{external_ip}:{self.response_port}\n'
+            +f'\n인트로 웹 페이지를 아래의 URL로 오픈하였습니다.\n{external_ip}:{self.response_port}/intro\n'
             +'포럼을 비롯한 모든 웹 서비스는 80번 포트(HTTP전용포트)로만 제공할수 있습니다.\n'
             +'[주의]80번 포트가 아니면 인트로 페이지를 제외한 웹 서비스를 제공할 수 없습니다.\n'
-            +f'80번 포트가 열려있다면 {external_ip} 로 웹 서비스를 제공합니다.\n' 
+            +f'80번 포트가 열려있다면 {external_ip}/intro 로 웹 서비스를 제공합니다.\n' 
             +'-'*40+'\n')
         set_up_connection_thread = Thread(
             target=self.connection_generation_loop)
