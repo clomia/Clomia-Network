@@ -185,9 +185,9 @@ def terminal_io():
 def clomia_network_info() -> tuple:
     """ clomia Network 공식 서버 정보를 반환 한다 """
     __server_ip = "192.168.219.102"
-    __server_input_port = 50000
-    __server_response_port = 50001
-    __secret_code = "LX25ECz"
+    __server_input_port = 45000
+    __server_response_port = 45001
+    __secret_code = "9LK2Dx6j5SjXfeju8x7r"
     return (__server_ip, __server_input_port, __server_response_port, __secret_code)
 
 

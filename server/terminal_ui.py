@@ -152,7 +152,7 @@ def make_settings_io() -> dict:
         print(f'{count}번째 서버를 입력포트: {port_pair[0]},응답포트: {port_pair[1]} 로 설정합니다.')
         while not (server_name := input("서버의 이름을 정해주세요.\n>>>")):
             print('공백은 입력받지 않습니다.')
-        while not (secret_code := input("서버의 암호를 정해주세요.\n>>>")):
+        while (not (secret_code := input("서버의 암호를 정해주세요.(공백이 없어야 합니다.)\n>>>"))) or (' ' in secret_code):
             print('공백은 입력받지 않습니다.')
         settings[port_pair] = [server_name,internal_ip,secret_code]
     msg = ("설정이 완료되었습니다. 설정을 저장합니다. 이 설정의 이름을 입력해주세요.\n"

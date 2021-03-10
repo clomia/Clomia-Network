@@ -58,6 +58,7 @@ class ResponseSocket(Thread):
         """ sock_data매개변수는 소켓객체가 아니라는 점에 유의 """
         super().__init__()
         self.sock, (self.client_ip, self.client_port) = sock_data
+        self.sock.settimeout(300)
         # 타겟 클라이언트 전용 데이터 큐 (데이터 큐 파이프라인의 출력부분)
         self.transmit_queue = Queue(SOCKET_QUEUE_SIZE)
         self.welcome_message = welcome_message
@@ -92,6 +93,9 @@ class ResponseSocket(Thread):
                 self.sock, f"{self.server_name}{now()}입력 대기중에 클라이언트가 사라졌습니다 ")
         except SendallMethodException as e:
             remove_socket(self.sock, f"{self.server_name}{now()}{e}")
+        except socket.timeout:
+            remove_socket(
+                self.sock, f"{self.server_name}{now()}소켓의 대기시간이 만료되었습니다 ")
 
 
 class InputSocket(Thread):
@@ -108,6 +112,7 @@ class InputSocket(Thread):
         """ sock_data매개변수는 소켓객체가 아니라는 점에 유의 """
         super().__init__()
         self.sock, (self.client_ip, self.client_port) = sock_data
+        self.sock.settimeout(300)
         self.unique_prefix = unique_prefix
         self.data_queue = data_queue
         self.lock = Lock()
@@ -136,6 +141,9 @@ class InputSocket(Thread):
         except ConnectionResetError:
             remove_socket(
                 self.sock, f"{self.server_name}{now()}입력 대기중에 클라이언트가 사라졌습니다 ")
+        except socket.timeout:
+            remove_socket(
+                self.sock, f"{self.server_name}{now()}소켓의 대기시간이 만료되었습니다 ")
 
 
 class Connection(Thread):
