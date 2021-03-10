@@ -29,7 +29,7 @@ class TemplateController:
         main_template = Controller("templates/main")\n
         completed_html = main_template.assembling()
         """
-        templates_path = os.path.dirname(os.path.realpath(__file__)) + "/" + dir_path
+        templates_path = os.path.dirname(os.path.realpath('http_manager')) + "/" + dir_path
         file_list = os.listdir(templates_path)
         extension = lambda file_name: file_name.split(".")[1]
         if not html:

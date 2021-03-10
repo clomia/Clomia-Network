@@ -23,8 +23,12 @@ def write_setting(setting_dir,setting_name,settings):
         pickle.dump(settings,file)
 
 def read_setting(setting_dir,setting_name) -> dict:
-    with open(f'{setting_dir}/{setting_name}.clomia-setting','rb') as file:
-        settings = pickle.load(file)
+    try:
+        with open(f'{setting_dir}/{setting_name}.clomia-setting','rb') as file:
+            settings = pickle.load(file)
+    except FileNotFoundError:
+        print('설정이 존재하지 않습니다')
+        raise
     key_list = list(settings.keys())
     key = key_list[0]
     ip = settings[key][1]
@@ -172,7 +176,12 @@ def run_web_server_io(internal_ip):
 
 
 def main():
-    settings,internal_ip = make_settings_io()
+    while True:
+        try:
+            settings,internal_ip = make_settings_io()
+            break
+        except FileNotFoundError:
+            continue
     run_web_server_io(internal_ip)
     Excutor(settings).run()
 

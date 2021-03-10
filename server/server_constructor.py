@@ -58,7 +58,7 @@ class ResponseSocket(Thread):
         """ sock_data매개변수는 소켓객체가 아니라는 점에 유의 """
         super().__init__()
         self.sock, (self.client_ip, self.client_port) = sock_data
-        self.sock.settimeout(300)
+        self.sock.settimeout(1000)
         # 타겟 클라이언트 전용 데이터 큐 (데이터 큐 파이프라인의 출력부분)
         self.transmit_queue = Queue(SOCKET_QUEUE_SIZE)
         self.welcome_message = welcome_message
@@ -112,7 +112,7 @@ class InputSocket(Thread):
         """ sock_data매개변수는 소켓객체가 아니라는 점에 유의 """
         super().__init__()
         self.sock, (self.client_ip, self.client_port) = sock_data
-        self.sock.settimeout(300)
+        self.sock.settimeout(1000)
         self.unique_prefix = unique_prefix
         self.data_queue = data_queue
         self.lock = Lock()
