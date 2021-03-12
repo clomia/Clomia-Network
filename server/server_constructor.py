@@ -368,7 +368,7 @@ class Server:
                         )
                         continue
                     elif (method := http_method(inspect_code)) in HTTP_METHOD_LIST:
-                        http_request = parse.unquote(inspect_code)
+                        http_request = parse.unquote(inspect_code.decode())
                         if not request_verification(http_request):
                             response_socket.close()
                             del response_socket

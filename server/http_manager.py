@@ -231,7 +231,7 @@ class HttpServe(Thread):
                 sock, (ip, port) = sock.accept()  # * Blocking
                 request_msg = sock.recv(4096)
                 method = http_method(request_msg)
-                request_msg = parse.unquote(request_msg)
+                request_msg = parse.unquote(request_msg.decode())
                 if not request_verification(request_msg):
                     sock.close()
                     del sock
