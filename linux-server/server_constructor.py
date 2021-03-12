@@ -401,6 +401,7 @@ class Server:
     ) -> socket_data:
         """ 연결 구축 시도 요청을 받아서 반환한다"""
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
+            server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             server_socket.bind((self.private_ip, self.response_port))
             server_socket.listen(SOCKET_QUEUE_SIZE)
             connection_establish_attempt_request = server_socket.accept()  # * Blocking
@@ -409,6 +410,7 @@ class Server:
     def input_socket_generator(self) -> socket_data:
         """ 이 함수가 실행될때 self.inspect_code_obj가 갱신된다 """
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
+            server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             server_socket.bind((self.private_ip, self.input_port))
             server_socket.listen(SOCKET_QUEUE_SIZE)
             connection_approval_request = server_socket.accept()  # * Blocking

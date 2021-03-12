@@ -1,9 +1,9 @@
-import os, pickle,socket, requests
+import os, pickle,socket, requests,netifaces
 from executor import Excutor
 from http_manager import HttpServe
 
 
-PATH = os.path.dirname(os.path.realpath('terminal_ui'))
+PATH = os.path.dirname(os.path.realpath('terminal'))
 
 def get_external_ip():
     """ 네이버 서버를 이용한다 """
@@ -31,8 +31,8 @@ def read_setting(setting_dir,setting_name) -> dict:
         raise
     key_list = list(settings.keys())
     key = key_list[0]
-    ip = settings[key][1]
-    internal_ip = socket.gethostbyname(socket.gethostname())
+    ip = settings[key][1] 
+    internal_ip = netifaces.ifaddresses('eth0')[2][0]['addr'] #[리눅스용]socket.gethostbyname(socket.gethostname())
     if ip != internal_ip:
         msg = ("ip검사 대조 결과 설정에 작성되있는 ip가 현재 내부 ip와 다릅니다.\n"
             +f"현재 내부 ip: {internal_ip} , 설정 파일에 작성된 ip: {ip}"
@@ -48,7 +48,7 @@ def read_setting(setting_dir,setting_name) -> dict:
 
 
 def make_settings_io() -> dict:
-    internal_ip = socket.gethostbyname(socket.gethostname())
+    internal_ip = netifaces.ifaddresses('eth0')[2][0]['addr'] #[리눅스용]socket.gethostbyname(socket.gethostname())
     setting_dir = set_dir(PATH)
     setting_tuple = tuple(map(lambda x:x[:-15],os.listdir(setting_dir)))
     if setting_tuple:
