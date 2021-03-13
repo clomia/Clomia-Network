@@ -1,6 +1,6 @@
 import os, pickle,socket, requests
 from executor import Excutor
-from http_manager import HttpServe
+from http_manager import HttpServe,BLACK_LIST
 
 
 PATH = os.path.dirname(os.path.realpath('terminal'))

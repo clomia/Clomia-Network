@@ -176,7 +176,14 @@ def extract_query(request):
         query_dict['password'] = str(time.time())
     return query_dict
 
+BLACK_LIST = []
 def request_verification(request_msg:str):
+
+    hacking_keywords = ['think','index','wget','ThinkPHP','invokefunction','phpinfo','ls','rm','exec','eval','cmd','curl']
+    for keyword in hacking_keywords:
+        if keyword in request_msg:
+            raise Exception('공격 감지')
+
     sources_verifications = [] #하나만 충족하면 된다
     sources_verifications.append(lambda :"GET /intro" in request_msg.split('.')[0])
     sources_verifications.append(lambda :"GET /docs" in request_msg.split('.')[0])
@@ -229,12 +236,33 @@ class HttpServe(Thread):
                 sock.bind((self.private_ip, 80))
                 sock.listen(4096)
                 sock, (ip, port) = sock.accept()  # * Blocking
-                request_msg = sock.recv(4096)
-                method = http_method(request_msg)
-                request_msg = parse.unquote(request_msg.decode())
-                if not request_verification(request_msg):
+                if ip in BLACK_LIST:
                     sock.close()
                     del sock
+                    print(f'차단된 ip:{ip} 입니다 \n소켓을 제거하였습니다')
+                    continue
+
+                request_msg = sock.recv(4096)
+                method = http_method(request_msg)
+                try:
+                    request_msg = parse.unquote(request_msg.decode())
+                except UnicodeDecodeError:
+                    print('디코딩 불가능한 bytes입니다')
+                    sock.close()
+                    del sock
+                    print('소켓을 제거하였습니다')
+                    continue
+                try:
+                    if not request_verification(request_msg):
+                        sock.close()
+                        del sock
+                        print('소켓을 제거하였습니다')
+                        continue
+                except:
+                    BLACK_LIST.append(ip)
+                    sock.close()
+                    del sock
+                    print(f'블랙리스트에 IP:{ip}추가\n소켓을 제거하였습니다')
                     continue
                 if method == "GET":
                     print(

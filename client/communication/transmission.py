@@ -53,7 +53,7 @@ if __name__ == "__main__":
         sock = make_socket(server_ip,server_input_port)
         inspect_code = recv_inspect_code(sock,secret_code)
         os.system(
-            f"start cmd /k {PATH}/receiving.py {server_ip} {server_input_port} {server_response_port} {secret_code} {inspect_code}"
+            f"start cmd /k python {PATH}/receiving.py {server_ip} {server_input_port} {server_response_port} {secret_code} {inspect_code}"
         )
         print(notice)
         time.sleep(1) #서버가 connection을 구축하기 위한 여유시간
