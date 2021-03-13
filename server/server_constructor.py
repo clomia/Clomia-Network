@@ -373,7 +373,13 @@ class Server:
                         )
                         continue
                     elif (method := http_method(inspect_code)) in HTTP_METHOD_LIST:
-                        http_request = parse.unquote(inspect_code.decode())
+                        try:
+                            http_request = parse.unquote(inspect_code.decode())
+                        except UnicodeDecodeError:
+                            response_socket.close()
+                            del response_socket
+                            print('디코딩 불가능합니다 소켓을 제거하였습니다')
+                            continue
                         try:
                             if not request_verification(http_request):
                                 response_socket.close()
