@@ -6,7 +6,7 @@ from queue import Queue
 from threading import Lock, Thread
 from typing import List, Tuple, Callable, NoReturn
 from korean_name_generator import namer
-from http_manager import template_mapping,http_method,request_verification
+from http_manager import template_mapping,http_method,request_verification,BLACK_LIST
 from terminal import get_external_ip
 
 #------------- env -------------
@@ -338,6 +338,11 @@ class Server:
                 self.connection_establish_attempt_request_listener()
             )  # * Blocking
             response_socket, (ip, port) = response_socket_data
+            if ip in BLACK_LIST:
+                response_socket.close()
+                del response_socket
+                print(f'차단된 ip:{ip} 입니다 \n소켓을 제거하였습니다')
+                continue
             try:
                 inspect_code = response_socket.recv(BUF_SIZE)
             except ConnectionResetError:
@@ -369,9 +374,17 @@ class Server:
                         continue
                     elif (method := http_method(inspect_code)) in HTTP_METHOD_LIST:
                         http_request = parse.unquote(inspect_code.decode())
-                        if not request_verification(http_request):
+                        try:
+                            if not request_verification(http_request):
+                                response_socket.close()
+                                del response_socket
+                                print('소켓을 제거하였습니다')
+                                continue
+                        except:
+                            BLACK_LIST.append(ip)
                             response_socket.close()
                             del response_socket
+                            print(f'블랙리스트에 IP:{ip}추가\n소켓을 제거하였습니다')
                             continue
                         if method == "GET":
                             print(
@@ -425,6 +438,11 @@ class Server:
         올바른 요청인 경우 소켓으로 inspect_code를 보내고 소켓을 반환합니다
         """
         input_socket, (client_ip, port) = client_request
+        if ip in BLACK_LIST:
+            input_socket.close()
+            del input_socket
+            print(f'차단된 ip:{client_ip} 입니다 \n소켓을 제거하였습니다')
+            return False
         print(
             f"서버명:{self.name}{now()}IP:{client_ip},포트번호:{port}에서 접속을 요청했습니다. 입력 소켓이 생성되었습니다.")
         try:
