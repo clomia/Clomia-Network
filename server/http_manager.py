@@ -179,7 +179,7 @@ def extract_query(request):
 BLACK_LIST = []
 def request_verification(request_msg:str):
 
-    hacking_keywords = ['think','index','wget','ThinkPHP','invokefunction','phpinfo','ls','rm','exec','eval','cmd','curl']
+    hacking_keywords = ['think','wget','ThinkPHP','invokefunction','phpinfo','exec','eval','cmd','curl']
     for keyword in hacking_keywords:
         if keyword in request_msg:
             raise Exception('공격 감지')
@@ -273,6 +273,7 @@ class HttpServe(Thread):
                     sock.close()
                     del sock
                     print('소켓을 제거하였습니다')
+                    continue
                 elif method == "POST":
                     print(
                         f"\n 80번 포트로 들어온 HTTP 요청 메세지[{method}]를 감지했습니다. 정보를 처리합니다.\n{request_msg}\n"
